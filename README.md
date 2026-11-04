@@ -18,7 +18,7 @@ Honte (本手, *the proper move*) is a place to review your **[OGS (online-go.co
 
 Pick one of your recent OGS games and write down why you won or lost and which moves you think mattered. Then let **KataGo** show you where the game actually turned. Honte keeps those notes for every game, so the same mistake is easier to spot the next time.
 
-- **No account, no password.** Enter your OGS username, player ID or profile URL and you get a **12-character code**. That code is your login on any device.
+- **No account, no password.** Enter your OGS username, player ID or profile URL and you get a **12-character code**. That code is your login on any device. No OGS account? You can get a code without one.
 - **Your OGS games, one click away.** Your latest 20 finished games are listed automatically.
 - **KataGo runs in your browser.** Nothing to install, no server, no cost.
 
@@ -31,6 +31,8 @@ Pick one of your recent OGS games and write down why you won or lost and which m
 1. Open Honte. Under **No code yet? Enter your OGS ID**, type your OGS username, player ID (e.g. `123456`) or profile URL (`https://online-go.com/player/123456/`).
 2. Press **Get my code**. You receive a code like `XXXX-XXXX-XXXX`, linked to that OGS account.
 3. **Save the code.** It's the only way to sign in on another device, and it can't be recovered. Entering your OGS ID again creates a *new, empty* account, so nobody can open your notes just by knowing your OGS name.
+
+**Don't have an OGS account?** Choose **I don't have an OGS account → Get a code without OGS**. You get a code right away and can review SGF files and over-the-board games. If you join OGS later, open **Recent games** and use **Link my OGS account**: your code and notes stay the same.
 
 ---
 
@@ -136,7 +138,7 @@ Analysis results are saved with the game, so reopening it doesn't re-run KataGo.
 ## FAQ
 
 **Do I need an OGS account?**
-To get a code, yes: the code is linked to an OGS player. Without one you can still try the [demo](https://connorxwolf.github.io/honte-review/app.dc.html?demo=1).
+No. Choose *I don't have an OGS account* to get a code, then upload SGF files or add games by hand. Link an OGS account later from **Recent games** whenever you like.
 
 **Does Honte change anything on OGS?**
 No. It only reads public game lists and game records.

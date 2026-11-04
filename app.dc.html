@@ -56,6 +56,13 @@
         <sc-if value="{{ hasCreateErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-accent-800)">{{ createErr }}</div></sc-if>
       </div>
 
+      <div class="card" style="padding:22px 24px;gap:12px">
+        <span class="card-title">I don't have an OGS account</span>
+        <div style="font-size:14px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Get a code right away and review SGF files or over-the-board games. You can link an OGS account later from “Recent games”.</div>
+        <div><button class="btn btn-secondary" style="white-space:nowrap" disabled="{{ createDisabled }}" onClick="{{ createNoOgs }}">{{ createNoOgsBtn }}</button></div>
+        <sc-if value="{{ hasNoOgsErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-accent-800)">{{ noOgsErr }}</div></sc-if>
+      </div>
+
       <sc-if value="{{ noCloud }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Sign-in isn't set up on this copy of the site yet (config.js). The demo still works.</div></sc-if>
       <div style="font-size:14px"><button class="btn btn-ghost" style="white-space:nowrap" onClick="{{ useDemo }}">Try the demo — nothing is saved</button></div>
     </div>
@@ -66,7 +73,8 @@
   <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
     <div class="card" style="width:100%;max-width:520px;padding:28px;gap:16px;box-sizing:border-box">
       <span class="card-title">Your sign-in code</span>
-      <div style="font-size:14px;color:var(--color-neutral-800)">Linked to OGS player <strong>{{ newOgsName }}</strong></div>
+      <sc-if value="{{ newHasOgs }}" hint-placeholder-val="{{ true }}"><div style="font-size:14px;color:var(--color-neutral-800)">Linked to OGS player <strong>{{ newOgsName }}</strong></div></sc-if>
+      <sc-if value="{{ newNoOgs }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-800)">Not linked to an OGS account. You can link one any time from <strong>Recent games</strong>.</div></sc-if>
       <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(24px,7vw,34px);font-weight:700;letter-spacing:.06em;padding:16px 18px;border-radius:var(--radius-lg);background:var(--color-bg);text-align:center;user-select:all">{{ newCode }}</div>
       <div style="font-size:14px;line-height:1.5;padding:12px 14px;border-radius:var(--radius-lg);background:var(--color-accent-100);color:var(--color-accent-800);text-wrap:pretty">Save this code somewhere safe. It is the only way to sign in on another device, and it can't be recovered — entering your OGS ID again creates a new, empty account.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
@@ -81,11 +89,12 @@
   <div style="max-width:1280px;margin:0 auto;padding:20px 16px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <a href="app.dc.html" aria-label="Honte home" style="display:flex;align-items:center;gap:10px;margin-right:auto;text-decoration:none"><img src="assets/taiji.png?v=1" alt="" aria-hidden="true" width="233" height="233" style="width:44px;height:44px;display:block"><img src="assets/honte-wordmark.png?v=1" alt="Honte" width="143" height="42" style="height:34px;width:auto;display:block"></a>
-      <a class="tag tag-accent-2" href="{{ ogsLink }}" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none">{{ ogsTag }}</a>
+      <sc-if value="{{ hasOgs }}" hint-placeholder-val="{{ true }}"><a class="tag tag-accent-2" href="{{ ogsLink }}" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none">{{ ogsTag }}</a></sc-if>
+      <sc-if value="{{ noOgs }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="white-space:nowrap">OGS · not linked</span></sc-if>
       <button class="tag tag-outline" style="white-space:nowrap;cursor:pointer;font:inherit;font-size:12px" title="Copy code" onClick="{{ copyMine }}">{{ codeText }}</button>
       <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ leave }}">{{ leaveText }}</button>
     </div>
-    <dc-import name="review" api="{{ api }}" profile="{{ profile }}" on-save-profile="{{ saveProfile }}" mobile="{{ mobile }}" toast="{{ toastFn }}" hint-size="100%,600px"></dc-import>
+    <dc-import name="review" api="{{ api }}" profile="{{ profile }}" on-save-profile="{{ saveProfile }}" on-link-ogs="{{ linkOgs }}" mobile="{{ mobile }}" toast="{{ toastFn }}" hint-size="100%,600px"></dc-import>
   </div>
 </sc-if>
 
@@ -96,7 +105,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
 class Component extends DCLogic {
-  state = { booting: true, mode: '', api: null, profile: null, code: '', ogsInput: '', signing: false, creating: false, signErr: '', createErr: '', newCode: '', copied: false, toast: '', mobile: false, myCode: '' };
+  state = { booting: true, mode: '', api: null, profile: null, code: '', ogsInput: '', signing: false, creating: false, signErr: '', createErr: '', noOgsErr: '', newCode: '', copied: false, toast: '', mobile: false, myCode: '' };
   componentDidMount() {
     const mq = window.matchMedia ? window.matchMedia('(max-width: 720px)') : null;
     if (mq) { this._mq = () => this.setState({ mobile: mq.matches }); this._mq(); mq.addEventListener ? mq.addEventListener('change', this._mq) : mq.addListener(this._mq); this._mqObj = mq; }
@@ -126,14 +135,22 @@ class Component extends DCLogic {
       this.setState({ signing: false, code: '', mode: 'cloud', api, profile, myCode: await api.myCode() }); }
     catch (e) { this.setState({ signing: false, signErr: e.message }); }
   }
-  async create() {
+  async create(withOgs) {
     if (this.state.creating) return;
-    const input = this.state.ogsInput.trim(); if (!input) return this.setState({ createErr: 'Enter your OGS username, player ID or profile URL.' });
-    if (!this.cloud()) return this.setState({ createErr: "Sign-in isn't set up on this site yet." });
-    this.setState({ creating: true, createErr: '' });
+    const errKey = withOgs ? 'createErr' : 'noOgsErr', input = withOgs ? this.state.ogsInput.trim() : '';
+    if (withOgs && !input) return this.setState({ createErr: 'Enter your OGS username, player ID or profile URL.' });
+    if (!this.cloud()) return this.setState({ [errKey]: "Sign-in isn't set up on this site yet." });
+    this.setState({ creating: true, createErr: '', noOgsErr: '' });
     try { const api = window.WQBoot('cloud'), r = await api.createAccount(input);
       this.setState({ creating: false, ogsInput: '', newCode: r.code, copied: false, api, profile: r.profile, myCode: r.code }); }
-    catch (e) { this.setState({ creating: false, createErr: e.message }); }
+    catch (e) { this.setState({ creating: false, [errKey]: e.message }); }
+  }
+  // Called by the review component's "Link my OGS account" field. Returns the updated profile.
+  async linkOgs(input) {
+    const s = this.state; if (!s.api || !s.api.linkOgs) throw new Error('Linking is not available.');
+    const profile = await s.api.linkOgs(input);
+    this.setState({ profile: Object.assign({}, s.profile, profile) });
+    return profile;
   }
   copy(text, done) {
     const ok = () => { if (done) done(); else this.toast('Code copied.'); };
@@ -156,15 +173,16 @@ class Component extends DCLogic {
       booting: s.booting, showGate: !s.booting && !inApp, showNewCode: !s.booting && inApp && !!s.newCode, showApp: !s.booting && inApp && !s.newCode,
       code: s.code, onCode: e => this.setState({ code: e.target.value }), onCodeKey: e => { if (e.key === 'Enter') this.signIn(); },
       signDisabled: s.signing, signBtn: s.signing ? 'Signing in…' : 'Sign in', signIn: () => this.signIn(), hasSignErr: !!s.signErr, signErr: s.signErr,
-      ogsInput: s.ogsInput, onOgsInput: e => this.setState({ ogsInput: e.target.value }), onOgsKey: e => { if (e.key === 'Enter') this.create(); },
-      createDisabled: s.creating, createBtn: s.creating ? 'Creating…' : 'Get my code', create: () => this.create(), hasCreateErr: !!s.createErr, createErr: s.createErr,
+      ogsInput: s.ogsInput, onOgsInput: e => this.setState({ ogsInput: e.target.value }), onOgsKey: e => { if (e.key === 'Enter') this.create(true); },
+      createDisabled: s.creating, createBtn: s.creating ? 'Creating…' : 'Get my code', create: () => this.create(true), hasCreateErr: !!s.createErr, createErr: s.createErr,
+      createNoOgs: () => this.create(false), createNoOgsBtn: s.creating ? 'Creating…' : 'Get a code without OGS', hasNoOgsErr: !!s.noOgsErr, noOgsErr: s.noOgsErr,
       noCloud: !cloud, useDemo: () => this.enter('demo'),
-      newCode: fmt(s.newCode), newOgsName: p.ogs_username || ('#' + (p.ogs_id || '')), copyText: s.copied ? 'Copied' : 'Copy code',
+      newCode: fmt(s.newCode), newOgsName: p.ogs_username || ('#' + (p.ogs_id || '')), newHasOgs: !!p.ogs_id, newNoOgs: !p.ogs_id, hasOgs: !!p.ogs_id, noOgs: !p.ogs_id, copyText: s.copied ? 'Copied' : 'Copy code',
       copyNew: () => this.copy(fmt(s.newCode), () => this.setState({ copied: true })), continueNew: () => this.setState({ newCode: '' }),
       ogsTag: 'OGS · ' + (p.ogs_username || ('#' + (p.ogs_id || ''))), ogsLink: p.ogs_id ? 'https://online-go.com/player/' + p.ogs_id : 'https://online-go.com',
       codeText: s.mode === 'demo' ? 'Demo · nothing is saved' : 'Code ' + fmt(s.myCode), copyMine: () => s.mode !== 'demo' && this.copy(fmt(s.myCode)),
       leaveText: s.mode === 'demo' ? 'Leave demo' : 'Sign out', leave: () => this.leave(),
-      api: s.api, profile: s.profile, saveProfile: patch => this.saveProfile(patch), mobile: s.mobile, toastFn: m => this.toast(m),
+      api: s.api, profile: s.profile, saveProfile: patch => this.saveProfile(patch), linkOgs: input => this.linkOgs(input), mobile: s.mobile, toastFn: m => this.toast(m),
       hasToast: !!s.toast, toast: s.toast
     };
   }

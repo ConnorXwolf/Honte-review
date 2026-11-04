@@ -26,7 +26,17 @@
 
       <sc-if value="{{ ogsOpen }}" hint-placeholder-val="{{ false }}">
         <div class="card" style="padding:20px 22px;gap:14px">
-          <sc-if value="{{ mineOn }}" hint-placeholder-val="{{ true }}">
+          <sc-if value="{{ showLinkForm }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <span class="card-title">Link my OGS account</span>
+              <div style="font-size:14px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Link your OGS account to see your latest games here. Your code and notes stay the same.</div>
+              <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+                <div class="field" style="flex:1;min-width:200px"><label for="ogs-link">OGS username, player ID or profile URL</label><input id="ogs-link" class="input" value="{{ linkName }}" onChange="{{ onLinkName }}" onKeyDown="{{ onLinkKey }}" placeholder="e.g. Connor, 123456 or online-go.com/player/123456" autocomplete="off" spellcheck="false"></div>
+                <button class="btn btn-primary" style="white-space:nowrap" disabled="{{ ogsBusy }}" onClick="{{ linkMine }}">{{ linkBtn }}</button>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ mineLinked }}" hint-placeholder-val="{{ true }}">
             <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
               <span style="font-size:14px;color:var(--color-neutral-800);margin-right:auto">Linked OGS account: <a href="{{ mineLink }}" target="_blank" rel="noopener">{{ mineName }}</a></span>
               <button class="btn btn-secondary" style="white-space:nowrap" disabled="{{ ogsBusy }}" onClick="{{ reloadMine }}">{{ mineBtn }}</button>
@@ -293,7 +303,7 @@
   </div>
 </sc-if>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"api":{"editor":null},"profile":{"editor":null},"onSaveProfile":{"editor":null},"toast":{"editor":null},"mobile":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"api":{"editor":null},"profile":{"editor":null},"onSaveProfile":{"editor":null},"onLinkOgs":{"editor":null},"toast":{"editor":null},"mobile":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":900}}'>
 // Stored values are short codes kept from the original 本手 review notes; the UI shows the English labels. [stored value, English label]
 const VENUES = [['棋院', 'Go club'], ['OGS', 'OGS'], ['野狐', 'Fox Weiqi'], ['比賽', 'Tournament'], ['其他', 'Other']];
 const SOURCES = [['老師', 'Teacher'], ['AI', 'AI'], ['老師與AI', 'Teacher + AI']];
@@ -401,7 +411,7 @@ async function ogsFallback(body) {
   throw new Error('OGS connector (api-en.js) is not loaded');
 }
 class Component extends DCLogic {
-  state = { games: [], loading: true, view: 'list', draft: null, cur: 0, tryFor: null, vari: null, aiBusy: false, aiMsg: '', aiErr: false, aiCfgOpen: false, aiUrl: '', aiToken: '', aiVisits: 50, aiEngine: 'local', aiModel: 'b10', aiModelUrl: '', saving: false, delOpen: false, ogs: { open: false, who: 'me', busy: false, err: '', mine: null, other: null, otherName: '', otherUid: '', otherUser: '' }, manualNo: '' };
+  state = { games: [], loading: true, view: 'list', draft: null, cur: 0, tryFor: null, vari: null, aiBusy: false, aiMsg: '', aiErr: false, aiCfgOpen: false, aiUrl: '', aiToken: '', aiVisits: 50, aiEngine: 'local', aiModel: 'b10', aiModelUrl: '', saving: false, delOpen: false, ogs: { open: false, who: 'me', busy: false, err: '', mine: null, other: null, otherName: '', otherUid: '', otherUser: '', linkName: '' }, manualNo: '' };
   componentWillUnmount() { this._aiRun = (this._aiRun || 0) + 1; }
   componentDidMount() {
     const set = (this.props.profile || {}).settings || {};
@@ -435,8 +445,19 @@ class Component extends DCLogic {
     const o = this.state.ogs, me = this.me();
     if (o.open && o.who === 'me') return this.setOgs({ open: false });
     this.setOgs({ open: true, who: 'me', err: '' });
-    if (!me.id) return this.setOgs({ err: 'This account has no linked OGS player.' });
-    if (!o.mine) this.loadList('mine', me.id);
+    if (me.id && !o.mine) this.loadList('mine', me.id);
+  }
+  async linkMine() {
+    const name = this.state.ogs.linkName.trim(); if (!name) return this.setOgs({ err: 'Enter your OGS username, player ID or profile URL.' });
+    if (!this.props.onLinkOgs) return this.setOgs({ err: 'Linking is not available here.' });
+    this.setOgs({ busy: true, err: '' });
+    try {
+      const p = await this.props.onLinkOgs(name);
+      if (!p || !p.ogs_id) throw new Error('No OGS player found.');
+      this.setOgs({ linkName: '', mine: null });
+      this.say('Linked to OGS player ' + (p.ogs_username || p.ogs_id) + '.');
+      await this.loadList('mine', String(p.ogs_id));
+    } catch (e) { this.setOgs({ busy: false, err: e.message }); }
   }
   showOther() {
     const o = this.state.ogs;
@@ -650,6 +671,9 @@ class Component extends DCLogic {
         info: { venue: '棋院', opponent: '', my_color: '黑', black_rank: '', white_rank: '', rules: '日本', komi: '6.5', handicap: 0, time: '', result: '勝', end: '數目', count: '', margin: '', reason: '', self_moves: '', source: '老師', takeaway: '' } }),
       ...(() => { const me = this.me(), mine = og.who === 'me', list = mine ? og.mine : og.other, refId = mine ? me.id : og.otherUid, refName = mine ? me.name : og.otherUser;
         return { ogsOpen: og.open, mineOn: og.open && mine, otherOn: og.open && !mine, mineCls: og.open && mine ? 'btn-primary' : 'btn-secondary', otherCls: og.open && !mine ? 'btn-primary' : 'btn-secondary',
+          showLinkForm: og.open && mine && !me.id, mineLinked: og.open && mine && !!me.id,
+          linkName: og.linkName, onLinkName: e => this.setOgs({ linkName: e.target.value }), onLinkKey: e => { if (e.key === 'Enter') this.linkMine(); },
+          linkMine: () => this.linkMine(), linkBtn: og.busy ? 'Linking…' : 'Link account',
           showMine: () => this.showMine(), showOther: () => this.showOther(), reloadMine: () => me.id && this.loadList('mine', me.id),
           mineName: me.name || ('#' + me.id), mineLink: me.id ? 'https://online-go.com/player/' + me.id : '#', mineBtn: og.busy ? 'Loading…' : 'Reload',
           otherName: og.otherName, onOtherName: e => this.setOgs({ otherName: e.target.value }), onOtherKey: e => { if (e.key === 'Enter') this.loadOther(); },

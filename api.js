@@ -124,10 +124,14 @@
         if (!p) throw new Error('This code has no Honte Review profile. Create a new code from your OGS ID.');
         return p;
       },
-      // Looks up the OGS player, creates an account with a fresh code, and signs in. Returns { code, profile }.
+      // Creates an account with a fresh code and signs in. Returns { code, profile }.
+      // With an OGS username / ID / URL the account is linked to that player; without one it starts unlinked.
       async createAccount(ogsInput) {
-        const u = await findUser(ogsInput);
-        if (!u || !u.id) throw new Error('No OGS player found. Check the username, player ID or profile URL.');
+        let u = { id: null, username: null };
+        if (ogsInput != null && String(ogsInput).trim()) {
+          u = await findUser(ogsInput);
+          if (!u || !u.id) throw new Error('No OGS player found. Check the username, player ID or profile URL.');
+        }
         let code = '', session = null, lastErr = null;
         for (let i = 0; i < 3 && !session; i++) {
           code = newCode();
@@ -143,6 +147,13 @@
         const id = session.user.id;
         const profile = chk(await sb.from('review_profiles').upsert({ id, ogs_id: u.id, ogs_username: u.username }).select().single());
         return { code, profile };
+      },
+      // Links (or re-links) this account to an OGS player. Returns the updated profile.
+      async linkOgs(ogsInput) {
+        const u = await findUser(ogsInput);
+        if (!u || !u.id) throw new Error('No OGS player found. Check the username, player ID or profile URL.');
+        const id = await uid(); if (!id) throw new Error('Not signed in.');
+        return chk(await sb.from('review_profiles').update({ ogs_id: u.id, ogs_username: u.username }).eq('id', id).select().single());
       },
       async myCode() { const { data } = await sb.auth.getSession(); return data.session ? data.session.user.email.split('@')[0].toUpperCase() : ''; },
       async signOut() { await sb.auth.signOut(); },
@@ -193,7 +204,10 @@
       kind: 'demo', demo: true,
       async current() { return JSON.parse(JSON.stringify(me)); },
       async signIn() { return api.current(); },
-      async createAccount(input) { await sleep(300); const name = String(input || '').trim() || ME; return { code: 'DEMODEMODEMO', profile: Object.assign({}, me, { ogs_username: name }) }; },
+      async createAccount(input) { await sleep(300); const name = String(input || '').trim();
+        if (!name) { me.ogs_id = null; me.ogs_username = null; } else { const u = await api.ogs({ action: 'user', name }); me.ogs_id = u.id; me.ogs_username = u.username; }
+        return { code: 'DEMODEMODEMO', profile: JSON.parse(JSON.stringify(me)) }; },
+      async linkOgs(input) { const u = await api.ogs({ action: 'user', name: input }); if (!u) throw new Error('No OGS player found.'); me.ogs_id = u.id; me.ogs_username = u.username; return JSON.parse(JSON.stringify(me)); },
       async myCode() { return 'DEMODEMODEMO'; },
       async signOut() {},
       async saveProfile(patch) { Object.assign(me, JSON.parse(JSON.stringify(patch))); },
