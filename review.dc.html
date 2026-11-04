@@ -189,11 +189,11 @@
             </div>
             <sc-if value="{{ needColor }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--color-accent-100);color:var(--color-accent-800)">Choose “Black” or “White” — the opponent and result fill in automatically.</div></sc-if>
             <sc-if value="{{ hasSgfRes }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Result in the game record: {{ sgfRes }}</div></sc-if>
-            <div class="field"><label for="g-reason">Why I won or lost</label><textarea id="g-reason" class="input" rows="3" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.reason }}" onChange="{{ on.reason }}"></textarea></div>
-            <div class="field"><label for="g-self">My own key moves (move numbers, up to 3)</label><input id="g-self" class="input" value="{{ inp.self_moves }}" onChange="{{ on.self_moves }}" placeholder="e.g. 45, 88, 120"></div>
+            <div class="field" style="padding-top:8px"><label for="g-reason" style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:17px;line-height:1.2;color:var(--color-text);margin-bottom:8px">Why I won or lost</label><textarea id="g-reason" class="input" rows="3" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.reason }}" onChange="{{ on.reason }}"></textarea></div>
+            <div class="field" style="padding-top:8px"><label for="g-self" style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:17px;line-height:1.2;color:var(--color-text);margin-bottom:8px">My own key moves <span style="font-family:var(--font-body);font-size:13px;color:var(--color-neutral-700)">(move numbers, up to 3)</span></label><input id="g-self" class="input" value="{{ inp.self_moves }}" onChange="{{ on.self_moves }}" placeholder="e.g. 45, 88, 120"></div>
             <sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex;flex-direction:column;gap:10px">
-                <span style="font-size:13px;font-weight:600;color:var(--color-neutral-800)">What the AI says about my key moves</span>
+                <span style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:17px;line-height:1.2;color:var(--color-text);padding-top:8px">What the AI says about my key moves</span>
                 <sc-if value="{{ smHint }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">{{ smHintText }}</div></sc-if>
                 <sc-for list="{{ selfAi }}" as="m" hint-placeholder-count="0">
                   <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-lg);background:var(--color-bg)">
@@ -232,7 +232,7 @@
                 </sc-if>
               </div>
             </sc-if>
-            <div class="field"><label for="g-take">Lessons to keep</label><textarea id="g-take" class="input" rows="2" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.takeaway }}" onChange="{{ on.takeaway }}"></textarea></div>
+            <div class="field" style="padding-top:8px"><label for="g-take" style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:17px;line-height:1.2;color:var(--color-text);margin-bottom:8px">Lessons to keep</label><textarea id="g-take" class="input" rows="2" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.takeaway }}" onChange="{{ on.takeaway }}"></textarea></div>
             <sc-if value="{{ hasRuleVars }}" hint-placeholder-val="{{ false }}">
               <div style="display:flex;flex-direction:column;gap:8px">
                 <span style="font-size:13px;color:var(--color-neutral-800)">Variations · {{ ruleVarCount }}</span>
