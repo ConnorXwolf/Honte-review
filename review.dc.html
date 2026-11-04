@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="assets/styles.css?v=2">
+<script src="katago/engine.js?v=1"></script>
+</helmet>
+
+<sc-if value="{{ isPage }}" hint-placeholder-val="{{ true }}">
+  <div style="display:flex;flex-direction:column;gap:20px">
+
+    <sc-if value="{{ isList }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn {{ mineCls }}" style="white-space:nowrap" aria-pressed="{{ mineOn }}" onClick="{{ showMine }}">Recent games</button>
+        <button class="btn {{ otherCls }}" style="white-space:nowrap" aria-pressed="{{ otherOn }}" onClick="{{ showOther }}">Other OGS player</button>
+        <label class="btn btn-secondary" style="white-space:nowrap;cursor:pointer">Upload SGF<input type="file" accept=".sgf,.SGF,application/x-go-sgf,text/plain" onChange="{{ onSgfFile }}" style="display:none"></label>
+        <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ newManual }}">Add game manually</button>
+      </div>
+
+      <sc-if value="{{ ogsOpen }}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="padding:20px 22px;gap:14px">
+          <sc-if value="{{ mineOn }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:14px;color:var(--color-neutral-800);margin-right:auto">Linked OGS account: <a href="{{ mineLink }}" target="_blank" rel="noopener">{{ mineName }}</a></span>
+              <button class="btn btn-secondary" style="white-space:nowrap" disabled="{{ ogsBusy }}" onClick="{{ reloadMine }}">{{ mineBtn }}</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ otherOn }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div class="field" style="flex:1;min-width:200px"><label for="ogs-other">OGS username, player ID or profile URL</label><input id="ogs-other" class="input" value="{{ otherName }}" onChange="{{ onOtherName }}" onKeyDown="{{ onOtherKey }}" placeholder="e.g. lightvector or 1069"></div>
+              <button class="btn btn-primary" style="white-space:nowrap" disabled="{{ ogsBusy }}" onClick="{{ loadOther }}">{{ otherBtn }}</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ hasOgsErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-accent-800)">{{ ogsErr }}</div></sc-if>
+          <sc-if value="{{ ogsLoading }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="align-self:flex-start">Loading games from OGS…</span></sc-if>
+          <sc-if value="{{ ogsNoGames }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-700)">No finished games found for this player.</div></sc-if>
+          <sc-if value="{{ hasOgsList }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:13px;color:var(--color-neutral-700)">{{ ogsListHint }}</div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <sc-for list="{{ ogsItems }}" as="f" hint-placeholder-count="6">
+                <button onClick="{{ f.pick }}" disabled="{{ ogsBusy }}" style="display:grid;grid-template-columns:{{ ogsCols }};gap:12px;align-items:center;text-align:left;padding:12px 16px;border:0;border-radius:var(--radius-lg);background:var(--color-bg);color:var(--color-text);font:inherit;font-size:14px;cursor:pointer" style-hover="background:var(--color-accent-100)">
+                  <span style="color:var(--color-neutral-800);white-space:nowrap">{{ f.date }}</span>
+                  <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.vs }}</span>
+                  <span style="white-space:nowrap;color:var(--color-neutral-800)">{{ f.meta }}</span>
+                  <span style="display:flex;gap:6px;justify-content:flex-end"><span class="tag {{ f.resClass }}">{{ f.res }}</span><sc-if value="{{ f.has }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline">Has notes</span></sc-if></span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ listLoading }}" hint-placeholder-val="{{ false }}"><span class="tag tag-neutral" style="align-self:flex-start">Loading…</span></sc-if>
+      <sc-if value="{{ listEmpty }}" hint-placeholder-val="{{ false }}">
+        <div class="card" style="padding:28px;gap:8px;max-width:640px"><span class="card-title">No game reviews yet</span><div style="font-size:14px;text-wrap:pretty;color:var(--color-neutral-800)">Open “Recent games” to pick one of your OGS games and mark the key moves on the board. Games played at a club or tournament can be added by hand.</div></div>
+      </sc-if>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+        <sc-for list="{{ gameCards }}" as="g" hint-placeholder-count="3">
+          <button onClick="{{ g.open }}" class="card" style="padding:18px 20px;gap:8px;text-align:left;border:0;font:inherit;color:var(--color-text);cursor:pointer" style-hover="box-shadow:var(--shadow-md)">
+            <div style="display:flex;align-items:center;gap:8px"><span style="font-size:13px;color:var(--color-neutral-700);margin-right:auto">{{ g.date }} · {{ g.venue }}</span><span class="tag {{ g.resClass }}">{{ g.res }}</span></div>
+            <span style="font-family:var(--font-heading);font-size:20px;line-height:1.3">{{ g.title }}</span>
+            <span style="font-size:13px;color:var(--color-neutral-800)">{{ g.meta }}</span>
+            <sc-if value="{{ g.hasReason }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--color-neutral-800);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ g.reason }}</span></sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isEdit }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" style="white-space:nowrap" onClick="{{ back }}">← Back to list</button>
+        <span style="font-family:var(--font-heading);font-size:22px;margin-right:auto">{{ edTitle }}</span>
+        <sc-if value="{{ hasOgsLink }}" hint-placeholder-val="{{ false }}"><a href="{{ ogsLink }}" target="_blank" rel="noopener" style="font-size:14px;white-space:nowrap">Open on OGS ↗</a></sc-if>
+        <sc-if value="{{ canDelete }}" hint-placeholder-val="{{ false }}"><button class="btn btn-ghost" style="white-space:nowrap" onClick="{{ askDel }}">Delete</button></sc-if>
+        <button class="btn btn-primary" style="white-space:nowrap" disabled="{{ saving }}" onClick="{{ save }}">{{ saveBtn }}</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:{{ edCols }};gap:24px;align-items:start">
+        <sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:12px;position:{{ boardPos }};top:20px">
+            <div onClick="{{ boardClick }}" style="position:relative;width:100%;aspect-ratio:1;background:var(--color-surface);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);cursor:{{ boardCursor }};overflow:hidden;outline:{{ boardOutline }};container-type:inline-size">
+              <svg viewBox="{{ vb }}" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none"><path d="{{ gridD }}" stroke="var(--color-neutral-700)" stroke-width="0.045" fill="none"></path></svg>
+              <sc-for list="{{ stars }}" as="p" hint-placeholder-count="9"><div style="position:absolute;left:{{ p.left }};top:{{ p.top }};width:1.6%;height:1.6%;border-radius:50%;background:var(--color-neutral-700);transform:translate(-50%,-50%);pointer-events:none"></div></sc-for>
+              <sc-for list="{{ stones }}" as="st" hint-placeholder-count="0"><div style="position:absolute;left:{{ st.left }};top:{{ st.top }};width:{{ cellW }};height:{{ cellW }};transform:translate(-50%,-50%) scale(.94);border-radius:50%;background:{{ st.bg }};box-shadow:{{ st.sh }};opacity:{{ st.op }};display:flex;align-items:center;justify-content:center;pointer-events:none"><sc-if value="{{ st.hasNum }}" hint-placeholder-val="{{ false }}"><span style="font-size:{{ numSize }};font-weight:700;line-height:1;color:{{ st.numColor }};font-family:var(--font-body)">{{ st.num }}</span></sc-if><sc-if value="{{ st.noNum }}" hint-placeholder-val="{{ true }}"><span style="width:36%;height:36%;border-radius:50%;background:{{ st.mark }}"></span></sc-if></div></sc-for>
+            </div>
+            <sc-if value="{{ trying }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--color-accent-2-200);color:var(--color-accent-2-900);display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span style="margin-right:auto">{{ tryHint }}</span><button class="btn btn-ghost" style="white-space:nowrap" onClick="{{ cancelTry }}">Cancel</button></div></sc-if>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <sc-for list="{{ navBtns }}" as="b" hint-placeholder-count="6"><button class="btn btn-secondary" aria-label="{{ b.aria }}" style="padding:6px 12px;min-width:44px;white-space:nowrap" onClick="{{ b.onClick }}">{{ b.label }}</button></sc-for>
+              <span style="font-size:14px;margin-left:auto;white-space:nowrap">{{ moveText }}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;border-radius:var(--radius-lg);background:{{ varBg }}">
+              <span style="font-size:13px;color:var(--color-neutral-800);margin-right:auto;text-wrap:pretty">{{ varText }}</span>
+              <button class="btn btn-secondary" style="white-space:nowrap;padding:6px 12px" disabled="{{ delDisabled }}" onClick="{{ delNode }}">Delete move</button>
+              <sc-if value="{{ inVar }}" hint-placeholder-val="{{ false }}">
+                <button class="btn btn-secondary" style="white-space:nowrap;padding:6px 12px" onClick="{{ exitVar }}">Back to game</button>
+                <button class="btn btn-secondary" style="white-space:nowrap;padding:6px 12px" onClick="{{ saveVarSelf }}">{{ saveVarSelfText }}</button>
+                <button class="btn btn-primary" style="white-space:nowrap;padding:6px 12px" onClick="{{ saveVar }}">{{ saveVarText }}</button>
+              </sc-if>
+            </div>
+            <input type="range" aria-label="Move" min="0" max="{{ maxMove }}" value="{{ cur }}" onChange="{{ onSlide }}" style="width:100%;accent-color:var(--color-accent)">
+            <button class="btn btn-secondary" style="white-space:nowrap" disabled="{{ markDisabled }}" onClick="{{ markKp }}">{{ markText }}</button>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:var(--radius-lg);background:var(--color-bg)">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span style="font-size:14px;font-weight:600">AI win rate (KataGo)</span>
+                <span class="tag tag-accent-2" style="white-space:nowrap;margin-right:auto">{{ aiEngineTag }}</span>
+                <select class="input" aria-label="Visits per move" style="width:auto;padding:6px 14px" value="{{ aiVisits }}" onChange="{{ onAiVisits }}"><sc-for list="{{ visitOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select>
+                <button class="btn btn-primary" style="white-space:nowrap;padding:6px 14px" onClick="{{ runAi }}">{{ aiBtn }}</button>
+                <button class="btn btn-ghost" style="white-space:nowrap;padding:6px 10px" onClick="{{ toggleAiCfg }}">Settings</button>
+              </div>
+              <sc-if value="{{ aiCfgOpen }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end">
+                  <div class="field"><label for="ai-engine">Engine</label><select id="ai-engine" class="input" value="{{ aiEngine }}" onChange="{{ onAiEngine }}"><option value="local">In this browser</option><option value="server">Self-hosted server</option></select></div>
+                  <sc-if value="{{ aiIsLocal }}" hint-placeholder-val="{{ true }}">
+                    <div class="field"><label for="ai-model">Model</label><select id="ai-model" class="input" value="{{ aiModel }}" onChange="{{ onAiModel }}"><sc-for list="{{ modelOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+                    <sc-if value="{{ aiIsCustom }}" hint-placeholder-val="{{ false }}"><div class="field"><label for="ai-model-url">Model URL</label><input id="ai-model-url" class="input" value="{{ aiModelUrl }}" onChange="{{ onAiModelUrl }}" placeholder="https://…/model.bin.gz"></div></sc-if>
+                  </sc-if>
+                  <sc-if value="{{ aiIsServer }}" hint-placeholder-val="{{ false }}">
+                  <div class="field"><label for="ai-url">Server URL</label><input id="ai-url" class="input" value="{{ aiUrl }}" onChange="{{ onAiUrl }}" placeholder="https://1-2-3-4.sslip.io"></div>
+                  <div class="field"><label for="ai-token">Password</label><input id="ai-token" class="input" type="password" value="{{ aiToken }}" onChange="{{ onAiToken }}"></div>
+                  </sc-if>
+                  <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ saveAiCfg }}">{{ aiSaveText }}</button>
+                </div>
+              </sc-if>
+              <sc-if value="{{ hasAiMsg }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:{{ aiMsgColor }};text-wrap:pretty">{{ aiMsg }}</div></sc-if>
+              <sc-if value="{{ hasAi }}" hint-placeholder-val="{{ false }}">
+                <div onClick="{{ graphClick }}" style="position:relative;height:120px;cursor:pointer;border-radius:12px;overflow:hidden;background:var(--color-neutral-100)">
+                  <svg viewBox="0 0 {{ gW }} 100" preserveAspectRatio="none" role="img" aria-label="Black win rate by move" style="position:absolute;inset:0;width:100%;height:100%">
+                    <path d="{{ wrArea }}" fill="var(--color-text)" fill-opacity="0.14" stroke="none"></path>
+                    <line x1="0" x2="{{ gW }}" y1="50" y2="50" stroke="var(--color-neutral-500)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></line>
+                    <path d="{{ wrLine }}" fill="none" stroke="var(--color-accent)" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+                    <line x1="{{ curX }}" x2="{{ curX }}" y1="0" y2="100" stroke="var(--color-accent-2-600)" stroke-width="2" vector-effect="non-scaling-stroke"></line>
+                  </svg>
+                  <span style="position:absolute;left:8px;top:4px;font-size:11px;color:var(--color-neutral-700)">Black wins</span>
+                  <span style="position:absolute;left:8px;bottom:4px;font-size:11px;color:var(--color-neutral-700)">White wins</span>
+                  <sc-for list="{{ wrMarks }}" as="k" hint-placeholder-count="0">
+                    <div title="{{ k.tip }}" onClick="{{ k.go }}" style="position:absolute;left:{{ k.left }};top:{{ k.top }};transform:translate(-50%,-50%);width:22px;height:22px;display:flex;align-items:center;justify-content:center;cursor:pointer">
+                      <span style="width:11px;height:11px;border-radius:50%;background:oklch(0.58 0.2 27);box-shadow:0 0 0 2px var(--color-neutral-100)"></span>
+                      <span style="position:absolute;bottom:17px;font-size:10px;font-weight:700;line-height:1;color:oklch(0.48 0.18 27);white-space:nowrap">{{ k.no }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ hasWrMarks }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-800)"><span style="width:9px;height:9px;border-radius:50%;background:oklch(0.58 0.2 27);flex:none"></span>Turning points (each side's 3 biggest losses, plus any other move losing ≥ 8%). Click a red dot to jump to that move.</div></sc-if>
+                <div style="font-size:13px;color:var(--color-neutral-800);text-wrap:pretty">{{ aiNow }}</div>
+                <sc-if value="{{ hasLossTop }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px">
+                    <div style="display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--color-bg)">
+                      <span style="font-size:13px;font-weight:600">Black · 3 biggest losses</span>
+                      <sc-if value="{{ hasLossB }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ lossB }}" as="m" hint-placeholder-count="3"><button class="tag tag-neutral" style="border:none;cursor:pointer;font:inherit;font-size:12px" style-hover="background:var(--color-neutral-300)" onClick="{{ m.go }}">{{ m.label }}</button></sc-for></div></sc-if>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:6px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--color-bg)">
+                      <span style="font-size:13px;font-weight:600">White · 3 biggest losses</span>
+                      <sc-if value="{{ hasLossW }}" hint-placeholder-val="{{ true }}"><div style="display:flex;flex-wrap:wrap;gap:6px"><sc-for list="{{ lossW }}" as="m" hint-placeholder-count="3"><button class="tag tag-neutral" style="border:none;cursor:pointer;font:inherit;font-size:12px" style-hover="background:var(--color-neutral-300)" onClick="{{ m.go }}">{{ m.label }}</button></sc-for></div></sc-if>
+                    </div>
+                  </div>
+                </sc-if>
+                <button class="btn btn-secondary" style="white-space:nowrap;align-self:flex-start" disabled="{{ aiBusy }}" onClick="{{ markTop }}">{{ markTopText }}</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:16px;min-width:0">
+          <div class="card" style="padding:20px 22px;gap:14px">
+            <span class="card-title">Game info</span>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+              <div class="field"><label for="g-date">Date</label><input id="g-date" class="input" type="date" value="{{ dPlayed }}" onChange="{{ onPlayed }}"></div>
+              <div class="field"><label for="g-venue">Where</label><select id="g-venue" class="input" value="{{ inp.venue }}" onChange="{{ on.venue }}"><sc-for list="{{ venueOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+              <div class="field"><label for="g-opp">Opponent</label><input id="g-opp" class="input" value="{{ inp.opponent }}" onChange="{{ on.opponent }}"></div>
+              <div class="field"><label>I played</label><div class="seg"><sc-for list="{{ colorOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap">{{ p.label }}</button></sc-for></div></div>
+              <div class="field"><label for="g-br">Black's rank</label><select id="g-br" class="input" value="{{ inp.black_rank }}" onChange="{{ on.black_rank }}"><sc-for list="{{ rankOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+              <div class="field"><label for="g-wr">White's rank</label><select id="g-wr" class="input" value="{{ inp.white_rank }}" onChange="{{ on.white_rank }}"><sc-for list="{{ rankOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+              <div class="field"><label>Rules</label><div class="seg"><sc-for list="{{ ruleOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap">{{ p.label }}</button></sc-for></div></div>
+              <div class="field"><label for="g-ha">Handicap stones</label><input id="g-ha" class="input" type="number" min="0" value="{{ inp.handicap }}" onChange="{{ on.handicap }}"></div>
+              <div class="field"><label for="g-komi">Komi (points)</label><input id="g-komi" class="input" type="number" step="0.5" value="{{ komiPts }}" onChange="{{ onKomi }}" placeholder="Negative = reverse komi"></div>
+              <div class="field"><label for="g-time">Time control</label><input id="g-time" class="input" value="{{ inp.time }}" onChange="{{ on.time }}" placeholder="e.g. 10 min + 3×30s"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding-top:4px">
+              <div class="field"><label>Result</label><div class="seg"><sc-for list="{{ resOpts }}" as="p" hint-placeholder-count="3"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap">{{ p.label }}</button></sc-for></div></div>
+              <div class="field"><label for="g-end">Ended by</label><select id="g-end" class="input" value="{{ inp.end }}" onChange="{{ on.end }}"><sc-for list="{{ endOpts }}" as="o" hint-placeholder-count="5"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+              <sc-if value="{{ showMargin }}" hint-placeholder-val="{{ false }}"><div class="field"><label for="g-margin">Winning margin (points)</label><input id="g-margin" class="input" type="number" step="0.5" value="{{ marginPts }}" onChange="{{ onMargin }}" placeholder="e.g. 6.5"></div></sc-if>
+              <div class="field"><label for="g-src">Reviewed with</label><select id="g-src" class="input" value="{{ inp.source }}" onChange="{{ on.source }}"><sc-for list="{{ sourceOpts }}" as="o" hint-placeholder-count="3"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+            </div>
+            <sc-if value="{{ needColor }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;padding:10px 14px;border-radius:var(--radius-lg);background:var(--color-accent-100);color:var(--color-accent-800)">Choose “Black” or “White” — the opponent and result fill in automatically.</div></sc-if>
+            <sc-if value="{{ hasSgfRes }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Result in the game record: {{ sgfRes }}</div></sc-if>
+            <div class="field"><label for="g-reason">Why I won or lost</label><textarea id="g-reason" class="input" rows="3" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.reason }}" onChange="{{ on.reason }}"></textarea></div>
+            <div class="field"><label for="g-self">My own key moves (move numbers, up to 3)</label><input id="g-self" class="input" value="{{ inp.self_moves }}" onChange="{{ on.self_moves }}" placeholder="e.g. 45, 88, 120"></div>
+            <sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <span style="font-size:13px;font-weight:600;color:var(--color-neutral-800)">What the AI says about my key moves</span>
+                <sc-if value="{{ smHint }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">{{ smHintText }}</div></sc-if>
+                <sc-for list="{{ selfAi }}" as="m" hint-placeholder-count="0">
+                  <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-lg);background:var(--color-bg)">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span style="font-size:14px;font-weight:600">Move {{ m.no }} · {{ m.who }}</span>
+                      <span class="tag {{ m.lossClass }}">{{ m.lossText }}</span>
+                      <span style="margin-right:auto"></span>
+                      <button class="btn btn-secondary" style="white-space:nowrap;padding:4px 12px" onClick="{{ m.goBest }}">See AI move</button>
+                      <button class="btn btn-ghost" style="white-space:nowrap;padding:4px 10px" onClick="{{ m.go }}">See game move</button>
+                    </div>
+                    <div style="font-size:13px;color:var(--color-neutral-800);text-wrap:pretty">{{ m.text }}</div>
+                    <div style="position:relative;height:56px;border-radius:12px;overflow:hidden;background:var(--color-neutral-100)">
+                      <svg viewBox="{{ m.vb }}" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%">
+                        <line x1="0" x2="{{ m.w }}" y1="50" y2="50" stroke="var(--color-neutral-500)" stroke-width="1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"></line>
+                        <line x1="{{ m.mx }}" x2="{{ m.mx }}" y1="0" y2="100" stroke="oklch(0.58 0.2 27)" stroke-width="2" vector-effect="non-scaling-stroke"></line>
+                        <path d="{{ m.line }}" fill="none" stroke="var(--color-accent)" stroke-width="2" vector-effect="non-scaling-stroke"></path>
+                      </svg>
+                      <span style="position:absolute;left:8px;top:3px;font-size:10px;color:var(--color-neutral-700)">Black win rate · moves {{ m.lo }}–{{ m.hi }}</span>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ hasSelfVars }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size:13px;color:var(--color-neutral-800)">Variations · {{ selfVarCount }}</span>
+                  <sc-for list="{{ selfVars }}" as="v" hint-placeholder-count="0">
+                  <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-lg);background:{{ v.bg }}">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span style="font-size:14px;font-weight:600">{{ v.title }}</span>
+                      <span style="font-size:13px;color:var(--color-neutral-800);margin-right:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.seq }}</span>
+                      <sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" style="white-space:nowrap;padding:4px 12px" onClick="{{ v.view }}">Show on board</button></sc-if>
+                      <button class="btn btn-ghost" style="white-space:nowrap;padding:4px 10px" onClick="{{ v.del }}">Remove</button>
+                    </div>
+                    <input class="input" aria-label="Variation note" value="{{ v.note }}" onChange="{{ v.onNote }}" placeholder="What does this variation show?">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-700)"><span>File under</span><div class="seg"><sc-for list="{{ v.placeOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap;font-size:12px;padding:4px 10px">{{ p.label }}</button></sc-for></div></div>
+                  </div>
+                </sc-for>
+                </sc-if>
+              </div>
+            </sc-if>
+            <div class="field"><label for="g-take">Lessons to keep</label><textarea id="g-take" class="input" rows="2" style="border-radius:var(--radius-lg);resize:vertical" value="{{ inp.takeaway }}" onChange="{{ on.takeaway }}"></textarea></div>
+            <sc-if value="{{ hasRuleVars }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:13px;color:var(--color-neutral-800)">Variations · {{ ruleVarCount }}</span>
+                <sc-for list="{{ ruleVars }}" as="v" hint-placeholder-count="0">
+                  <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:var(--radius-lg);background:{{ v.bg }}">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                      <span style="font-size:14px;font-weight:600">{{ v.title }}</span>
+                      <span style="font-size:13px;color:var(--color-neutral-800);margin-right:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ v.seq }}</span>
+                      <sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" style="white-space:nowrap;padding:4px 12px" onClick="{{ v.view }}">Show on board</button></sc-if>
+                      <button class="btn btn-ghost" style="white-space:nowrap;padding:4px 10px" onClick="{{ v.del }}">Remove</button>
+                    </div>
+                    <input class="input" aria-label="Variation note" value="{{ v.note }}" onChange="{{ v.onNote }}" placeholder="What does this variation show?">
+                    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--color-neutral-700)"><span>File under</span><div class="seg"><sc-for list="{{ v.placeOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap;font-size:12px;padding:4px 10px">{{ p.label }}</button></sc-for></div></div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ varTip }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Click an empty point on the board to try a variation, then press “Save to lessons” or “Save to key moves” to file it there.</div></sc-if>
+          </div>
+
+          <div class="card" style="padding:20px 22px;gap:14px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="card-title" style="margin-right:auto">Key moves · {{ kpCount }}</span><span style="font-size:13px;color:var(--color-neutral-700)">{{ hitText }}</span></div>
+            <sc-if value="{{ noBoard }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px;border-radius:var(--radius-lg);background:var(--color-bg)"><span style="font-size:13px;color:var(--color-neutral-800);margin-right:auto">Have the SGF for this game? Add it to review on the board.</span><label class="btn btn-secondary" style="white-space:nowrap;cursor:pointer">Add SGF<input type="file" accept=".sgf,.SGF,application/x-go-sgf,text/plain" onChange="{{ onAttachSgf }}" style="display:none"></label></div>
+              <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap"><div class="field" style="width:120px"><label for="kp-no">Move number</label><input id="kp-no" class="input" type="number" min="1" value="{{ manualNo }}" onChange="{{ onManualNo }}"></div><button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ addManualKp }}">Add key move</button></div>
+            </sc-if>
+            <sc-if value="{{ kpEmpty }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-neutral-700);text-wrap:pretty">{{ kpEmptyText }}</div></sc-if>
+            <sc-for list="{{ kps }}" as="k" hint-placeholder-count="0">
+              <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:var(--radius-lg);background:{{ k.bg }}">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <button onClick="{{ k.jump }}" style="border:0;background:transparent;padding:0;font:inherit;font-family:var(--font-heading);font-size:18px;color:var(--color-text);cursor:pointer;margin-right:auto;text-align:left">Move {{ k.no }}</button>
+                  <button class="btn btn-ghost" style="white-space:nowrap;padding:4px 10px" onClick="{{ k.del }}">Remove</button>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
+                  <div class="field"><label>I played</label><input class="input" aria-label="I played" value="{{ k.my }}" onChange="{{ k.on.my_move }}" placeholder="e.g. R5"></div>
+                  <div class="field"><label>Better move</label><div style="display:flex;gap:6px"><input class="input" aria-label="Better move" style="min-width:0;flex:1" value="{{ k.correct }}" onChange="{{ k.on.correct }}" placeholder="e.g. S4"><sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" style="white-space:nowrap;padding:6px 12px" onClick="{{ k.tryIt }}">Place</button></sc-if></div></div>
+                  <div class="field"><label>Loss (win rate %)</label><input class="input" aria-label="Loss (win rate %)" type="number" min="0" max="100" value="{{ k.loss }}" onChange="{{ k.on.loss }}"></div>
+                  <div class="field"><label>Mistake type</label><select class="input" aria-label="Mistake type" value="{{ k.type }}" onChange="{{ k.on.type }}"><sc-for list="{{ mtOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+                </div>
+                <div class="field"><label>What I was thinking</label><textarea class="input" aria-label="What I was thinking" rows="2" style="border-radius:var(--radius-lg);resize:vertical" value="{{ k.thought }}" onChange="{{ k.on.thought }}"></textarea></div>
+                <div class="field"><label>One of my 3 key moves</label><div class="seg" style="align-self:flex-start"><sc-for list="{{ k.selfOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap">{{ p.label }}</button></sc-for></div></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ delOpen }}" hint-placeholder-val="{{ false }}">
+      <div class="dialog-backdrop" onClick="{{ closeDel }}" style="position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:24px">
+        <div class="dialog" role="dialog" aria-modal="true" onClick="{{ stop }}" style="max-width:420px;width:100%;display:flex;flex-direction:column;gap:14px">
+          <div class="dialog-title">Delete this game review?</div>
+          <div class="dialog-body" style="font-size:14px">The game info and all key moves will be deleted. This can't be undone.</div>
+          <div class="dialog-actions" style="display:flex;justify-content:flex-end;gap:10px"><button class="btn btn-ghost" onClick="{{ closeDel }}">Cancel</button><button class="btn btn-primary" onClick="{{ doDel }}">Delete</button></div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"api":{"editor":null},"profile":{"editor":null},"onSaveProfile":{"editor":null},"toast":{"editor":null},"mobile":{"editor":"boolean","default":false},"$preview":{"width":1280,"height":900}}'>
+// Stored values are short codes kept from the original 本手 review notes; the UI shows the English labels. [stored value, English label]
+const VENUES = [['棋院', 'Go club'], ['OGS', 'OGS'], ['野狐', 'Fox Weiqi'], ['比賽', 'Tournament'], ['其他', 'Other']];
+const SOURCES = [['老師', 'Teacher'], ['AI', 'AI'], ['老師與AI', 'Teacher + AI']];
+const ENDS = [['數子', 'Area count'], ['數目', 'Territory count'], ['中盤勝', 'Resignation'], ['超時勝', 'Timeout'], ['和棋', 'Draw']];
+const MTL = [['死活計算', 'Life & death reading'], ['對殺', 'Capturing race'], ['手筋或棋形', 'Tesuji / shape'], ['方向或大小判斷', 'Direction / judging size'], ['官子', 'Endgame'], ['漏看對方的手段', "Missed opponent's idea"], ['時間或讀秒', 'Time / byo-yomi']];
+const MT = MTL.map(x => x[0]);
+const RES = { '勝': 'Win', '負': 'Loss', '和': 'Draw' }, COL = { '黑': 'Black', '白': 'White' }, RULE = { '中國': 'Chinese', '日本': 'Japanese' };
+const lab = (list, v) => { const f = list.find(x => x[0] === v); return f ? f[1] : (v || ''); };
+const opts = (list, cur) => { const o = list.map(([v, l]) => ({ v, l })); if (cur && !list.some(x => x[0] === cur)) o.push({ v: cur, l: cur }); return o; };
+const mtLabel = v => lab(MTL, v);
+const RANKS = [{ v: '', l: 'Not set' }].concat(Array.from({ length: 30 }, (_, i) => ({ v: (30 - i) + 'K', l: (30 - i) + ' kyu' })),
+  Array.from({ length: 9 }, (_, i) => ({ v: (i + 1) + 'D', l: (i + 1) + ' dan' })), Array.from({ length: 9 }, (_, i) => ({ v: (i + 1) + 'P', l: (i + 1) + ' dan pro' })));
+const LET = 'ABCDEFGHJKLMNOPQRST';
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+const addD = (s, n) => { const d = new Date(s + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return isoOf(d); };
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const mdOf = s => s ? MON[Number(s.slice(5, 7)) - 1] + ' ' + Number(s.slice(8, 10)) : '';
+const todayIso = () => { const n = new Date(); return n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()); };
+const localIso = t => { const n = new Date(t); return isNaN(n) ? '' : n.getFullYear() + '-' + pad(n.getMonth() + 1) + '-' + pad(n.getDate()); };
+const pctS = v => Math.round(v) + '%';
+const num = v => { const x = parseFloat(v); return isFinite(x) ? x : null; };
+const trimN = x => String(Math.round(x * 100) / 100);
+const stripNick = s => String(s || '').replace(/[(（].*?[)）]/g, '').trim();
+const sameNick = (a, b) => { a = stripNick(a); b = stripNick(b); return !!a && !!b && (a === b || a.toLowerCase() === b.toLowerCase()); };
+const rankOf = s => { s = String(s || ''); let m;
+  if ((m = /(\d+)\s*(段|d|D)/.exec(s)) && /职业|職業|[pP]/.test(s)) return m[1] + 'P';
+  if ((m = /(\d+)\s*[pP]/.exec(s))) return m[1] + 'P';
+  if ((m = /(\d+)\s*(段|d|D)/.exec(s))) return m[1] + 'D';
+  if ((m = /(\d+)\s*(级|級|k|K)/.exec(s))) return m[1] + 'K';
+  return ''; };
+const rankShort = r => { const m = /^(\d+)([KDP])$/.exec(r || ''); return m ? m[1] + m[2].toLowerCase() : ''; };
+const moveOrd = n => 'move ' + n;
+
+function parseSgf(s) {
+  s = String(s || ''); let i = 0;
+  const props = n => {
+    for (;;) {
+      while (i < s.length && /\s/.test(s[i])) i++;
+      const m = /^[A-Za-z]+/.exec(s.slice(i, i + 16)); if (!m) return;
+      const k = m[0].replace(/[a-z]/g, ''); i += m[0].length; const vals = [];
+      for (;;) { while (i < s.length && /\s/.test(s[i])) i++; if (s[i] !== '[') break; i++; let v = ''; while (i < s.length && s[i] !== ']') { if (s[i] === '\\') i++; v += s[i++]; } i++; vals.push(v); }
+      (n.p[k] = n.p[k] || []).push(...vals);
+    }
+  };
+  const tree = () => {
+    i++; let first = null, cur = null;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === ';') { i++; const n = { p: {}, k: [] }; props(n); if (!first) first = n; else cur.k.push(n); cur = n; }
+      else if (c === '(') { const sub = tree(); if (cur && sub) cur.k.push(sub); else if (!first) first = sub; }
+      else if (c === ')') { i++; return first; }
+      else i++;
+    }
+    return first;
+  };
+  while (i < s.length && s[i] !== '(') i++;
+  if (i >= s.length) return null;
+  const root = tree(); if (!root) return null;
+  const P = root.p, size = Math.min(19, Math.max(5, parseInt((P.SZ || ['19'])[0]) || 19)), xy = v => v && v.length >= 2 && v !== 'tt' ? [v.charCodeAt(0) - 97, v.charCodeAt(1) - 97] : null;
+  const setup = []; (P.AB || []).forEach(v => { const q = xy(v); if (q) setup.push(['B', q[0], q[1]]); }); (P.AW || []).forEach(v => { const q = xy(v); if (q) setup.push(['W', q[0], q[1]]); });
+  const moves = []; let n = root;
+  while (n) { ['B', 'W'].forEach(c => { if (n.p[c]) { const q = xy(n.p[c][0]); moves.push(q && q[0] < size && q[1] < size ? { c, x: q[0], y: q[1] } : { c, pass: true }); } }); n = n.k[0]; }
+  const g = k => (P[k] || [''])[0];
+  return { size, setup, moves, P: { PB: g('PB'), PW: g('PW'), BR: g('BR'), WR: g('WR'), RE: g('RE'), KM: g('KM'), HA: g('HA'), RU: g('RU'), DT: g('DT'), TM: g('TM') } };
+}
+function buildPos(line) {
+  const N = line.size, pos = []; let b = new Array(N * N).fill(null);
+  const nb = (x, y) => [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].filter(([a, c]) => a >= 0 && c >= 0 && a < N && c < N);
+  const group = (bd, x, y) => { const col = bd[y * N + x].c, seen = new Set([y * N + x]), st = [[x, y]]; let lib = false;
+    while (st.length) { const [a, c] = st.pop(); for (const [p, q] of nb(a, c)) { const k = q * N + p, v = bd[k]; if (!v) lib = true; else if (v.c === col && !seen.has(k)) { seen.add(k); st.push([p, q]); } } }
+    return { lib, st: [...seen] }; };
+  line.setup.forEach(([c, x, y]) => { if (x < N && y < N) b[y * N + x] = { c, m: 0 }; });
+  pos.push(b);
+  line.moves.forEach((mv, i) => {
+    b = b.slice();
+    if (!mv.pass) {
+      b[mv.y * N + mv.x] = { c: mv.c, m: i + 1 };
+      const opp = mv.c === 'B' ? 'W' : 'B';
+      nb(mv.x, mv.y).forEach(([a, c]) => { const v = b[c * N + a]; if (v && v.c === opp) { const g = group(b, a, c); if (!g.lib) g.st.forEach(k => { b[k] = null; }); } });
+      const own = group(b, mv.x, mv.y); if (!own.lib) own.st.forEach(k => { b[k] = null; });
+    }
+    pos.push(b);
+  });
+  return pos;
+}
+function applyMove(b, mv, N) {
+  if (b[mv.y * N + mv.x]) return null;
+  const nb = (x, y) => [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]].filter(([p, q]) => p >= 0 && q >= 0 && p < N && q < N);
+  const group = (bd, x, y) => { const col = bd[y * N + x].c, seen = new Set([y * N + x]), st = [[x, y]]; let lib = false;
+    while (st.length) { const [p, q] = st.pop(); for (const [u, w] of nb(p, q)) { const k = w * N + u, v = bd[k]; if (!v) lib = true; else if (v.c === col && !seen.has(k)) { seen.add(k); st.push([u, w]); } } }
+    return { lib, st: [...seen] }; };
+  b = b.slice(); b[mv.y * N + mv.x] = Object.assign({}, mv.stone);
+  const opp = mv.stone.c === 'B' ? 'W' : 'B';
+  nb(mv.x, mv.y).forEach(([p, q]) => { const v = b[q * N + p]; if (v && v.c === opp) { const g = group(b, p, q); if (!g.lib) g.st.forEach(k => { b[k] = null; }); } });
+  if (!group(b, mv.x, mv.y).lib) return null;
+  return b;
+}
+const nameOf = (x, y, N) => LET[x] + (N - y);
+const xyOfName = (s, N) => { const m = /^([A-HJ-Ta-hj-t])\s*(\d{1,2})$/.exec(String(s || '').trim()); if (!m) return null; const x = LET.indexOf(m[1].toUpperCase()), y = N - Number(m[2]); return x >= 0 && x < N && y >= 0 && y < N ? [x, y] : null; };
+
+// OGS fallback when the host page did not pass an api with .ogs()
+async function ogsFallback(body) {
+  if (window.WQOgs && window.WQOgs.call) return window.WQOgs.call(body);
+  throw new Error('OGS connector (api-en.js) is not loaded');
+}
+class Component extends DCLogic {
+  state = { games: [], loading: true, view: 'list', draft: null, cur: 0, tryFor: null, vari: null, aiBusy: false, aiMsg: '', aiErr: false, aiCfgOpen: false, aiUrl: '', aiToken: '', aiVisits: 50, aiEngine: 'local', aiModel: 'b10', aiModelUrl: '', saving: false, delOpen: false, ogs: { open: false, who: 'me', busy: false, err: '', mine: null, other: null, otherName: '', otherUid: '', otherUser: '' }, manualNo: '' };
+  componentWillUnmount() { this._aiRun = (this._aiRun || 0) + 1; }
+  componentDidMount() {
+    const set = (this.props.profile || {}).settings || {};
+    const kg = set.katago || {};
+    this.setState({ ogs: Object.assign({}, this.state.ogs, { otherName: set.ogsOther || '' }), aiUrl: kg.url || '', aiToken: kg.token || '', aiVisits: kg.visits || 50, aiEngine: kg.engine || (kg.url ? 'server' : 'local'), aiModel: (((window.WQKata && window.WQKata.MODELS) || []).some(x => x.id === kg.model) ? kg.model : 'b10'), aiModelUrl: kg.modelUrl || '' });
+    this.loadGames();
+  }
+  async loadGames() {
+    try { const g = await this.apiObj().games(); this.setState({ games: g || [], loading: false }); }
+    catch (e) { this.setState({ loading: false }); this.say('Could not load game reviews: ' + e.message); }
+  }
+  apiObj() { const a = this.props.api || window.WQApi || (window.WQBootEn && window.WQBootEn('demo')); if (!a) throw new Error('Data connection is not ready. Please reload the page.'); if (typeof a.ogs !== 'function') a.ogs = body => ogsFallback(body); return a; }
+  say(m) { if (this.props.toast) this.props.toast(m); }
+  setOgs(p) { this.setState(s => ({ ogs: Object.assign({}, s.ogs, p) })); }
+  saveSettings(patch) { const p = this.props.profile || {}; if (this.props.onSaveProfile) return this.props.onSaveProfile({ settings: Object.assign({}, p.settings || {}, patch) }); }
+  line() {
+    const d = this.state.draft; if (!d || !d.sgf) return null;
+    if (this._b && this._b.sgf === d.sgf) return this._b;
+    const line = parseSgf(d.sgf); this._b = { sgf: d.sgf, line, pos: line ? buildPos(line) : null };
+    return this._b;
+  }
+  me() { const p = this.props.profile || {}; return { id: p.ogs_id ? String(p.ogs_id) : '', name: p.ogs_username || '' }; }
+  async loadList(which, uid) {
+    this.setOgs({ busy: true, err: '', [which]: null });
+    try {
+      const L = await this.apiObj().ogs({ action: 'list', uid });
+      this.setOgs({ busy: false, [which]: ((L && L.games) || []).slice(0, 20) });
+    } catch (e) { this.setOgs({ busy: false, err: e.message }); }
+  }
+  showMine() {
+    const o = this.state.ogs, me = this.me();
+    if (o.open && o.who === 'me') return this.setOgs({ open: false });
+    this.setOgs({ open: true, who: 'me', err: '' });
+    if (!me.id) return this.setOgs({ err: 'This account has no linked OGS player.' });
+    if (!o.mine) this.loadList('mine', me.id);
+  }
+  showOther() {
+    const o = this.state.ogs;
+    if (o.open && o.who === 'other') return this.setOgs({ open: false });
+    this.setOgs({ open: true, who: 'other', err: '' });
+  }
+  async loadOther() {
+    const name = this.state.ogs.otherName.trim(); if (!name) return this.setOgs({ err: 'Enter an OGS username, player ID or profile URL.' });
+    this.setOgs({ busy: true, err: '', other: null });
+    try {
+      const u = await this.apiObj().ogs({ action: 'user', name });
+      if (!u || !u.id) throw new Error('No OGS player found with that name.');
+      this.setOgs({ otherUid: String(u.id), otherUser: u.username || name });
+      const set = (this.props.profile || {}).settings || {}; if (set.ogsOther !== name) this.saveSettings({ ogsOther: name });
+      await this.loadList('other', String(u.id));
+    } catch (e) { this.setOgs({ busy: false, err: e.message }); }
+  }
+  async pickOgs(it) {
+    const ex = this.state.games.find(g => g.fox_id && String(g.fox_id) === 'ogs:' + it.id);
+    if (ex) return this.openGame(ex);
+    this.setOgs({ busy: true, err: '' });
+    try {
+      const r = await this.apiObj().ogs({ action: 'sgf', id: it.id });
+      if (!r || !r.sgf) throw new Error('Could not load the game record.');
+      this.setOgs({ busy: false });
+      this.openDraft(this.fromSgf(r.sgf, it));
+    } catch (e) { this.setOgs({ busy: false, err: e.message }); }
+  }
+  async readSgfFile(e) {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f) return null;
+    if (f.size > 2e6) { this.say('File is too large — SGF files are usually under 100 KB.'); return null; }
+    const buf = await f.arrayBuffer();
+    let t; try { t = new TextDecoder('utf-8', { fatal: true }).decode(buf); } catch { t = new TextDecoder('gb18030').decode(buf); }
+    const L = parseSgf(t);
+    if (!L || (!L.moves.length && !L.setup.length)) { this.say("Couldn't read a game from that file. Is it an SGF?"); return null; }
+    return t;
+  }
+  async uploadSgf(e) {
+    const t = await this.readSgfFile(e); if (!t) return;
+    const d = this.fromSgf(t, {});
+    d.info.venue = /online-go|OGS/i.test(t) ? 'OGS' : /foxwq|野狐|Fox/i.test(t) ? '野狐' : '其他';
+    this.openDraft(d); this.say('Game opened — remember to press Save.');
+  }
+  async attachSgf(e) {
+    const t = await this.readSgfFile(e); if (!t) return;
+    const L = parseSgf(t);
+    this._b = null;
+    this.setState(s => ({ draft: Object.assign({}, s.draft, { sgf: t }), cur: L.moves.length }));
+    this.say('Game record added — remember to press Save.');
+  }
+  pickColor(c) {
+    const d = this.state.draft, I = d.info || {}, P = d.sgf ? ((parseSgf(d.sgf) || {}).P || {}) : {};
+    const patch = { my_color: c };
+    if (P.PB || P.PW) {
+      const opp = c === '黑' ? P.PW : P.PB;
+      if (!I.opponent || I.opponent === (P.PB + ' vs ' + P.PW) || I.opponent === P.PB || I.opponent === P.PW) patch.opponent = opp || I.opponent;
+      const m = /^([BW])\+/i.exec(String(P.RE || '').trim());
+      if (m) patch.result = (m[1].toUpperCase() === 'B') === (c === '黑') ? '勝' : '負';
+    }
+    this.setState(s => ({ draft: Object.assign({}, s.draft, { info: Object.assign({}, s.draft.info, patch) }) }));
+  }
+  // Builds a draft from an SGF. `it` is an OGS list item ({ id, black, white, blackId, whiteId, winner, outcome, rules, komi, time, date }) or {} for an upload.
+  fromSgf(sgf, it) {
+    const L = parseSgf(sgf) || { P: {}, moves: [], size: 19 }, P = L.P || {}, me = this.me().name, meId = this.me().id;
+    const pb = P.PB || it.black || '', pw = P.PW || it.white || '';
+    const mc = meId && String(it.blackId || '') === meId ? '黑' : meId && String(it.whiteId || '') === meId ? '白' : sameNick(pb, me) ? '黑' : sameNick(pw, me) ? '白' : '';
+    const ru = String(P.RU || it.rules || '');
+    const rules = /jap|kor|日|韓/i.test(ru) ? '日本' : '中國', cn = rules === '中國';
+    // Fox SGFs scale KM (e.g. KM[375]); OGS and most programs write komi in points.
+    const fox = /foxwq|野狐/i.test(sgf), km = num(P.KM) != null ? num(P.KM) : num(it.komi);
+    let komi = '';
+    if (km != null) komi = cn ? trimN(Math.abs(km) >= 50 ? km / 100 : km / 2) : trimN(Math.abs(km) >= 50 ? km / 50 : km);
+    const re = String(P.RE || '').trim(); let win = '', end = '', count = '', margin = '';
+    const m = /^([BW])\+(.*)$/i.exec(re), N = L.size || 19, kS = num(komi) || 0;
+    const setScore = pts => { if (cn) { end = '數子'; count = trimN(N * N / 2 + kS + (win === 'B' ? pts / 2 : -pts / 2)); margin = trimN(pts); } else { end = '數目'; margin = trimN(pts); } };
+    if (m) { win = m[1].toUpperCase(); const t = m[2];
+      if (/^r/i.test(t)) end = '中盤勝'; else if (/^t/i.test(t)) end = '超時勝';
+      else { const v = parseFloat(t); if (isFinite(v)) setScore(fox && cn ? v * 2 : v); } }
+    else if (/^(0|draw|jigo|和)/i.test(re)) end = '和棋';
+    else if (it.winner === 'B' || it.winner === 'W') { win = it.winner; const oc = String(it.outcome || '');
+      if (/resign/i.test(oc)) end = '中盤勝'; else if (/time/i.test(oc)) end = '超時勝'; else { const v = parseFloat(oc); if (isFinite(v)) setScore(v); } }
+    const result = end === '和棋' ? '和' : !win || !mc ? '' : (win === 'B') === (mc === '黑') ? '勝' : '負';
+    const day = /^\d{4}-\d{2}-\d{2}/.test(P.DT) ? P.DT.slice(0, 10) : it.date || todayIso();
+    const tm = parseFloat(P.TM);
+    return { id: null, fox_id: it.id ? 'ogs:' + it.id : null, played_on: day, sgf, points: [],
+      info: { venue: it.id ? 'OGS' : '其他', opponent: mc === '黑' ? pw : mc === '白' ? pb : (pb + ' vs ' + pw), my_color: mc, black_rank: rankOf(P.BR || it.blackRank), white_rank: rankOf(P.WR || it.whiteRank), rules, komi, handicap: parseInt(P.HA) || it.handicap || 0,
+        time: it.time || (isFinite(tm) && tm > 0 ? Math.round(tm / 60) + ' min' : ''), result, end, count, margin, fox_result: re || it.outcome || '', reason: '', self_moves: '', source: 'AI', takeaway: '' } };
+  }
+  openDraft(d) { this._b = null; this.setState({ view: 'edit', draft: d, cur: 0, tryFor: null, vari: null, manualNo: '' }); const b = this.line(); if (b && b.line) this.setState({ cur: b.line.moves.length }); }
+  openGame(g) { this.openDraft(JSON.parse(JSON.stringify(Object.assign({ points: [], info: {} }, g)))); }
+  patchInfo(k, v) { this.setState(s => ({ draft: Object.assign({}, s.draft, { info: Object.assign({}, s.draft.info, typeof k === 'object' ? k : { [k]: v }) }) })); }
+  patchKp(id, p) { this.setState(s => ({ draft: Object.assign({}, s.draft, { points: s.draft.points.map(x => x.id === id ? Object.assign({}, x, p) : x) }) })); }
+  addKp(no, my, extra) { this.addKps([Object.assign({ move_no: no, my_move: my || '' }, extra || {})]); }
+  addKps(list) {
+    this.setState(s => { const d = s.draft, have = new Set(d.points.map(p => Number(p.move_no)));
+      const add = list.filter(k => !have.has(Number(k.move_no))).map((k, i) => Object.assign({ id: 'k' + Date.now() + '_' + i, correct: '', loss: '', thought: '', type: MT[0], in_self: false }, k));
+      if (!add.length) { this.say(list.length === 1 ? 'Move ' + list[0].move_no + ' is already a key move.' : 'Those moves are already key moves.'); return null; }
+      return { draft: Object.assign({}, d, { points: d.points.concat(add).sort((a, b) => a.move_no - b.move_no) }) }; });
+  }
+  aiBase() { const u = String(this.state.aiUrl || '').trim().replace(/\/+$/, ''); return u && !/^https?:\/\//.test(u) ? 'https://' + u : u; }
+  async aiFetch(path, body) {
+    const r = await fetch(this.aiBase() + path, { method: body ? 'POST' : 'GET', headers: Object.assign({ Authorization: 'Bearer ' + this.state.aiToken }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+    const t = await r.text(); let d; try { d = JSON.parse(t); } catch { throw new Error(r.status === 503 || /<html/i.test(t) ? 'The server is waking up or still building. Try again in 1–2 minutes.' : 'Unexpected server response (HTTP ' + r.status + ').'); }
+    if (!r.ok) throw new Error(d.error || ('HTTP ' + r.status)); return d;
+  }
+  aiCfg() { const s = this.state; return { engine: s.aiEngine, model: s.aiModel, modelUrl: s.aiModelUrl, url: this.aiBase(), token: s.aiToken, visits: s.aiVisits }; }
+  async loadLocal() {
+    if (!window.WQKata) throw new Error('katago/engine-en.js is not loaded.');
+    const s = this.state, name = (window.WQKata.MODELS.find(m => m.id === s.aiModel) || {}).label || s.aiModel;
+    this.setState({ aiMsg: 'Loading model ' + name + ' (the first time downloads it)…', aiErr: false });
+    try { await window.WQKata.load(s.aiModel, s.aiModelUrl.trim(), f => this.setState({ aiMsg: 'Downloading model ' + Math.round(f * 100) + '%' }), t => this.setState({ aiMsg: t })); }
+    catch (e) { throw new Error(/library/i.test(e.message) ? e.message : 'Model failed to load: ' + e.message); }
+  }
+  async saveAiCfg() {
+    const kg = this.aiCfg();
+    this.saveSettings({ katago: kg }); this.setState({ aiUrl: kg.url });
+    if (kg.engine === 'local') {
+      this.setState({ aiBusy: true });
+      try { await this.loadLocal(); this.setState({ aiBusy: false, aiCfgOpen: false, aiMsg: 'Model loaded (' + (window.WQKata.backend() === 'webgpu' ? 'WebGPU' : 'WASM') + '). Ready to analyze.' }); }
+      catch (e) { this.setState({ aiBusy: false, aiErr: true, aiMsg: e.message }); }
+      return;
+    }
+    this.setState({ aiMsg: 'Testing connection…', aiErr: false });
+    try { await this.aiFetch('/ping', {}); this.setState({ aiMsg: 'Connected. Ready to analyze.', aiCfgOpen: false }); }
+    catch (e) { this.setState({ aiErr: true, aiMsg: "Can't reach the KataGo server: " + e.message + '. Check the URL and password, and that the server is running.' }); }
+  }
+  komiForEngine(I) { const cn = (I.rules || '中國') === '中國', k = parseFloat(I.komi); return isFinite(k) ? (cn ? k * 2 : k) : (cn ? 7.5 : 6.5); }
+  async runAi() {
+    const B = this.line(); if (!B || !B.line) return;
+    if (window.WQIsDemo && window.WQIsDemo() && (this.state.aiEngine === 'local' || !this.aiBase())) {
+      const n = B.line.moves.length; let w = 50; const wr = [], lead = [], best = [];
+      for (let i = 0; i <= n; i++) { w = Math.max(2, Math.min(98, w + (Math.sin(i * 1.7) * 4) + (i % 37 === 0 && i ? -22 : 0))); wr.push(Math.round(w * 10) / 10); lead.push(Math.round((w - 50) / 3 * 10) / 10); best.push(LET[(i * 7) % 19] + (1 + (i * 5) % 19)); }
+      this.patchInfo('ai', { visits: 50, wr, lead, best }); return this.setState({ aiMsg: 'Demo mode: showing a made-up win-rate graph.', aiErr: false });
+    }
+    if (this.state.aiEngine === 'local') return this.runLocal(B);
+    if (!this.aiBase()) return this.setState({ aiCfgOpen: true, aiErr: true, aiMsg: 'Enter your KataGo server URL and password first.' });
+    const L = B.line, N = L.size, I = this.state.draft.info || {}, cn = (I.rules || '中國') === '中國';
+    const q = { size: N, rules: cn ? 'chinese' : 'japanese', komi: this.komiForEngine(I), visits: Number(this.state.aiVisits) || 50,
+      moves: L.moves.map(m => [m.c, m.pass ? 'pass' : nameOf(m.x, m.y, N)]), initialStones: L.setup.map(([c, x, y]) => [c, nameOf(x, y, N)]) };
+    const run = this._aiRun = (this._aiRun || 0) + 1, draftRef = this.state.draft;
+    this.setState({ aiBusy: true, aiErr: false, aiMsg: 'Sending the game…' });
+    try {
+      const job = await this.aiFetch('/analyze', q);
+      const t0 = Date.now();
+      for (;;) {
+        await new Promise(r => setTimeout(r, 2500));
+        if (run !== this._aiRun) return;
+        const j = await this.aiFetch('/job/' + job.id);
+        if (j.status === 'error') throw new Error(j.error || 'KataGo analysis failed');
+        const ai = { visits: q.visits, wr: j.turns.map(t => t ? t.wr : null), lead: j.turns.map(t => t ? t.lead : null), best: j.turns.map(t => t ? t.best : null) };
+        if (this.state.draft && this.state.draft.sgf === draftRef.sgf) this.patchInfo('ai', ai);
+        const sec = Math.round((Date.now() - t0) / 1000), eta = j.done > 2 ? Math.round(sec / j.done * (j.total - j.done)) : null;
+        this.setState({ aiMsg: 'Analyzing ' + j.done + ' / ' + j.total + ' moves' + (eta != null ? ', about ' + (eta > 90 ? Math.round(eta / 60) + ' min' : eta + ' s') + ' left' : '') });
+        if (j.status === 'done') break;
+      }
+      this.setState({ aiBusy: false, aiMsg: 'Analysis complete (' + q.visits + ' visits per move).' });
+      if (this.state.draft && this.state.draft.sgf === draftRef.sgf) this.save();
+    } catch (e) { if (run === this._aiRun) this.setState({ aiBusy: false, aiErr: true, aiMsg: 'AI analysis failed: ' + e.message }); }
+  }
+  async runLocal(B) {
+    const L = B.line, N = L.size, I = this.state.draft.info || {}, cn = (I.rules || '中國') === '中國';
+    const komi = this.komiForEngine(I);
+    const visits = Number(this.state.aiVisits) || 50, run = this._aiRun = (this._aiRun || 0) + 1, draftRef = this.state.draft;
+    const total = B.pos.length, wr = new Array(total).fill(null), lead = wr.slice(), best = wr.slice();
+    this.setState({ aiBusy: true, aiErr: false });
+    try {
+      await this.loadLocal();
+      const t0 = Date.now();
+      for (let i = 0; i < total; i++) {
+        if (run !== this._aiRun) return;
+        const P = B.pos[i], board = [];
+        for (let y = 0; y < N; y++) { const row = []; for (let x = 0; x < N; x++) { const v = P[y * N + x]; row.push(v ? (v.c === 'B' ? 'black' : 'white') : null); } board.push(row); }
+        const nx = L.moves[i], prev = L.moves[i - 1];
+        const player = nx ? (nx.c === 'B' ? 'black' : 'white') : prev ? (prev.c === 'B' ? 'white' : 'black') : (L.setup.length ? 'white' : 'black');
+        const r = await window.WQKata.analyze({ board, player, rules: cn ? 'chinese' : 'japanese', komi, visits });
+        wr[i] = r.wr; lead[i] = r.lead; best[i] = r.best;
+        if (i % 5 === 4 || i === total - 1) {
+          if (this.state.draft && this.state.draft.sgf === draftRef.sgf) this.patchInfo('ai', { visits, wr: wr.slice(), lead: lead.slice(), best: best.slice() });
+          const sec = (Date.now() - t0) / 1000, eta = Math.round(sec / (i + 1) * (total - i - 1));
+          this.setState({ aiMsg: 'Analyzing in your browser ' + (i + 1) + ' / ' + total + ' moves, about ' + (eta > 90 ? Math.round(eta / 60) + ' min' : eta + ' s') + ' left' });
+        }
+      }
+      this.setState({ aiBusy: false, aiMsg: 'Analysis complete (in-browser ' + (window.WQKata.backend() === 'webgpu' ? 'WebGPU' : 'WASM') + ', ' + visits + ' visits per move).' });
+      if (this.state.draft && this.state.draft.sgf === draftRef.sgf) this.save();
+    } catch (e) { if (run === this._aiRun) this.setState({ aiBusy: false, aiErr: true, aiMsg: 'AI analysis failed: ' + e.message }); }
+  }
+  stopAi() { this._aiRun = (this._aiRun || 0) + 1; this.setState({ aiBusy: false, aiMsg: 'Analysis stopped. Finished moves are kept.' }); }
+  async save() {
+    const d = this.state.draft; this.setState({ saving: true });
+    try {
+      const out = Object.assign({}, d, { points: d.points.map(p => Object.assign({}, p, { move_no: Number(p.move_no) || 0, loss: p.loss === '' || p.loss == null ? null : Number(p.loss) })) });
+      const g = await this.apiObj().saveGame(out);
+      this.setState(s => ({ saving: false, draft: Object.assign({}, s.draft, { id: g.id }), games: [g].concat(s.games.filter(x => x.id !== g.id)).sort((a, b) => a.played_on < b.played_on ? 1 : a.played_on > b.played_on ? -1 : 0) }));
+      this.say('Game review saved.');
+    } catch (e) { this.setState({ saving: false }); this.say('Save failed: ' + e.message); }
+  }
+  async doDel() {
+    const d = this.state.draft;
+    try { if (d.id) await this.apiObj().deleteGame(d.id); this.setState(s => ({ delOpen: false, view: 'list', draft: null, games: s.games.filter(x => x.id !== d.id) })); this.say('Deleted.'); }
+    catch (e) { this.say('Delete failed: ' + e.message); }
+  }
+  renderVals() {
+    const P = this.props, s = this.state, mobile = !!P.mobile;
+    const seg = (on, label, fn) => ({ label, onClick: fn, bg: on ? 'var(--color-accent)' : 'transparent', color: on ? 'var(--color-bg)' : 'var(--color-text)' });
+    const out = { isPage: true, stop: e => e.stopPropagation() };
+    const og = s.ogs;
+    Object.assign(out, { isList: s.view === 'list', isEdit: s.view === 'edit', delOpen: s.delOpen, closeDel: () => this.setState({ delOpen: false }), doDel: () => this.doDel(),
+      onSgfFile: e => this.uploadSgf(e), onAttachSgf: e => this.attachSgf(e),
+      newManual: () => this.openDraft({ id: null, fox_id: null, sgf: null, played_on: todayIso(), points: [],
+        info: { venue: '棋院', opponent: '', my_color: '黑', black_rank: '', white_rank: '', rules: '日本', komi: '6.5', handicap: 0, time: '', result: '勝', end: '數目', count: '', margin: '', reason: '', self_moves: '', source: '老師', takeaway: '' } }),
+      ...(() => { const me = this.me(), mine = og.who === 'me', list = mine ? og.mine : og.other, refId = mine ? me.id : og.otherUid, refName = mine ? me.name : og.otherUser;
+        return { ogsOpen: og.open, mineOn: og.open && mine, otherOn: og.open && !mine, mineCls: og.open && mine ? 'btn-primary' : 'btn-secondary', otherCls: og.open && !mine ? 'btn-primary' : 'btn-secondary',
+          showMine: () => this.showMine(), showOther: () => this.showOther(), reloadMine: () => me.id && this.loadList('mine', me.id),
+          mineName: me.name || ('#' + me.id), mineLink: me.id ? 'https://online-go.com/player/' + me.id : '#', mineBtn: og.busy ? 'Loading…' : 'Reload',
+          otherName: og.otherName, onOtherName: e => this.setOgs({ otherName: e.target.value }), onOtherKey: e => { if (e.key === 'Enter') this.loadOther(); },
+          loadOther: () => this.loadOther(), otherBtn: og.busy ? 'Loading…' : 'Show games',
+          ogsBusy: og.busy, hasOgsErr: !!og.err, ogsErr: og.err, ogsLoading: og.busy && !list, ogsNoGames: !og.busy && !og.err && !!list && !list.length,
+          hasOgsList: !!(list && list.length), ogsListHint: (mine ? 'Your' : (refName || 'This player') + '’s') + ' latest ' + ((list || []).length) + ' finished games · pick one to start your notes',
+          ogsCols: mobile ? '64px minmax(0,1fr) auto' : '120px minmax(0,1fr) 110px auto',
+          ogsItems: (list || []).map(it => { const mc = refId && String(it.blackId) === String(refId) ? 'B' : refId && String(it.whiteId) === String(refId) ? 'W' : sameNick(it.black, refName) ? 'B' : sameNick(it.white, refName) ? 'W' : '';
+            const w = it.winner || ''; const res = it.annulled ? 'Annulled' : !w ? 'Draw' : !mc ? (w === 'B' ? 'B+' : 'W+') : w === mc ? 'Win' : 'Loss';
+            const rk = r => r ? ' (' + r + ')' : '';
+            return { date: mobile ? mdOf(it.date) : (it.date ? mdOf(it.date) + ', ' + it.date.slice(0, 4) : ''), vs: 'B ' + (it.black || '?') + rk(it.blackRank) + ' · W ' + (it.white || '?') + rk(it.whiteRank),
+              meta: mobile ? '' : [it.size ? it.size + '×' + it.size : '', it.ranked ? 'ranked' : 'free'].filter(Boolean).join(' · '),
+              res, resClass: res === 'Win' ? 'tag-accent-2' : res === 'Loss' ? 'tag-accent' : 'tag-neutral', has: s.games.some(g => String(g.fox_id) === 'ogs:' + it.id), pick: () => this.pickOgs(it) }; }) }; })(),
+      listLoading: s.loading, listEmpty: !s.loading && !s.games.length,
+      gameCards: s.games.map(g => { const I = g.info || {}, pts = g.points || [];
+        return { date: g.played_on ? mdOf(g.played_on) : '', venue: lab(VENUES, I.venue) || '—', res: RES[I.result] || 'No result', resClass: I.result === '勝' ? 'tag-accent-2' : I.result === '負' ? 'tag-accent' : 'tag-neutral',
+          title: 'vs ' + (I.opponent || 'Unknown opponent'), meta: [I.my_color ? 'as ' + COL[I.my_color] : '', lab(ENDS, I.end), pts.length ? pts.length + ' key moves · ' + pts.filter(p => p.in_self).length + ' self-picked' : 'No key moves yet'].filter(Boolean).join(' · '),
+          hasReason: !!I.reason, reason: I.reason || '', open: () => this.openGame(g) }; })
+    });
+    const d = s.draft;
+    if (!d) return Object.assign(out, { inp: {}, on: {}, kps: [], stones: [], stars: [], navBtns: [] });
+    const I = d.info || {};
+    const keys = ['venue', 'opponent', 'black_rank', 'white_rank', 'handicap', 'time', 'end', 'source', 'reason', 'self_moves', 'takeaway'];
+    const inp = {}, on = {}; keys.forEach(k => { inp[k] = I[k] ?? ''; on[k] = e => this.patchInfo(k, e.target.value); });
+    const B = this.line(), hasBoard = !!(B && B.line && B.pos), N = hasBoard ? B.line.size : 19, maxMove = hasBoard ? B.line.moves.length : 0;
+    const cur = Math.max(0, Math.min(maxMove, s.cur)), tryKp = d.points.find(p => p.id === s.tryFor);
+    const vari = hasBoard && !tryKp && s.vari ? s.vari : null;
+    const showAt = tryKp ? Math.max(0, Math.min(maxMove, Number(tryKp.move_no) - 1)) : vari ? vari.base : cur;
+    const varBoards = [];
+    if (vari) { let b = B.pos[vari.base]; varBoards.push(b); for (let i = 0; i < vari.moves.length; i++) { const m = vari.moves[i]; b = applyMove(b, { x: m.x, y: m.y, stone: { c: m.c, m: -1, v: i + 1 } }, N) || b; varBoards.push(b); } }
+    const nextColor = (base, moves) => { if (moves.length) return moves[moves.length - 1].c === 'B' ? 'W' : 'B'; if (base > 0) { const m = B.line.moves[base - 1]; return m.c === 'B' ? 'W' : 'B'; } return (parseInt(B.line.P.HA) > 0 || (B.line.setup.length && B.line.setup.every(q => q[0] === 'B'))) ? 'W' : 'B'; };
+    const savedArr = Array.isArray(I.variations) ? I.variations : [];
+    const ai = hasBoard && I.ai && Array.isArray(I.ai.wr) && I.ai.wr.some(v => v != null) ? I.ai : null;
+    const lossAt = i => { if (!ai || i < 1) return null; const b = ai.wr[i - 1], c = ai.wr[i], m = B.line.moves[i - 1]; if (b == null || c == null || !m) return null; return Math.max(0, Math.round((m.c === 'B' ? b - c : c - b) * 10) / 10); };
+    const setVars = arr => this.patchInfo('variations', arr);
+    const kpNos = new Set(d.points.map(p => Number(p.move_no)));
+    const cell = 100 / N, at = i => ((i + 0.5) * cell).toFixed(3) + '%';
+    let stones = [], stars = [], gridD = '';
+    if (hasBoard) {
+      const bd = vari ? varBoards[vari.at] : B.pos[showAt];
+      for (let i = 0; i < N; i++) gridD += `M0.5 ${i + 0.5}H${N - 0.5}M${i + 0.5} 0.5V${N - 0.5}`;
+      const sp = N === 19 ? [3, 9, 15] : N === 13 ? [3, 6, 9] : N === 9 ? [2, 4, 6] : [];
+      sp.forEach(x => sp.forEach(y => stars.push({ left: at(x), top: at(y) })));
+      bd.forEach((v, k) => { if (!v) return; const x = k % N, y = Math.floor(k / N), isV = !!v.v;
+        const last = vari ? (isV ? v.v === vari.at : (vari.at === 0 && v.m === vari.base && v.m > 0)) : (v.m === showAt && v.m > 0), kp = !isV && kpNos.has(v.m);
+        stones.push({ left: at(x), top: at(y), bg: v.c === 'B' ? 'var(--color-text)' : 'var(--color-neutral-100)', op: 1,
+          sh: kp ? '0 0 0 3px var(--color-accent)' : isV && last ? '0 0 0 3px var(--color-accent-2-500)' : v.c === 'W' ? 'inset 0 0 0 1px var(--color-neutral-500)' : 'none',
+          mark: last ? 'var(--color-accent)' : 'transparent', hasNum: isV, noNum: !isV, num: isV ? v.v : '', numColor: v.c === 'B' ? 'var(--color-neutral-100)' : 'var(--color-text)' }); });
+      if (ai && !vari && !tryKp && ai.best[cur] && ai.best[cur] !== 'pass') { const q = xyOfName(ai.best[cur], N); if (q && !bd[q[1] * N + q[0]]) stones.push({ left: at(q[0]), top: at(q[1]), bg: 'transparent', op: 1, sh: 'inset 0 0 0 3px var(--color-accent-2-500)', mark: 'transparent', hasNum: false, noNum: true }); }
+      if (!vari) d.points.forEach(p => { if (Number(p.move_no) - 1 !== showAt || !p.correct) return; const q = xyOfName(p.correct, N); if (!q) return; const mv = B.line.moves[Number(p.move_no) - 1];
+        stones.push({ left: at(q[0]), top: at(q[1]), bg: mv && mv.c === 'W' ? 'var(--color-neutral-100)' : 'var(--color-text)', op: 0.55, sh: '0 0 0 3px var(--color-accent-2-500)', mark: 'var(--color-accent-2-500)' }); });
+    }
+    const mv = hasBoard && cur > 0 ? B.line.moves[cur - 1] : null;
+    const go = n => () => this.setState({ cur: Math.max(0, Math.min(maxMove, n)), tryFor: null, vari: null });
+    const vgo = n => () => { if (n < 0) return this.setState({ vari: null, cur: vari.base }); this.setState({ vari: Object.assign({}, vari, { at: Math.min(vari.moves.length, n) }) }); };
+    const seqOf = (moves) => moves.map(m => (m.c === 'B' ? 'B ' : 'W ') + nameOf(m.x, m.y, N)).join(', ');
+    const ruleCN = (I.rules || '中國') === '中國', counted = ['數子', '數目'].includes(I.end);
+    // komi is stored in stones under Chinese rules (Chinese-site convention); show and edit it in points.
+    const kStored = num(I.komi), komiPts = kStored == null ? '' : trimN(ruleCN ? kStored * 2 : kStored);
+    const mStored = num(I.margin), cStored = num(I.count);
+    const marginPts = mStored != null ? trimN(mStored) : (ruleCN && cStored != null ? trimN(Math.abs(cStored - N * N / 2 - (kStored || 0)) * 2) : '');
+    const blackWon = !I.my_color || !['勝', '負'].includes(I.result) ? null : (I.result === '勝') === (I.my_color === '黑');
+    const hits = d.points.filter(p => p.in_self).length;
+    const ogsId = /^ogs:(\d+)$/.exec(String(d.fox_id || ''));
+    const R0 = Object.assign(out, {
+      back: () => this.setState({ view: 'list', draft: null, tryFor: null, vari: null }), save: () => this.save(), saving: s.saving, saveBtn: s.saving ? 'Saving…' : 'Save',
+      canDelete: !!d.id, askDel: () => this.setState({ delOpen: true }), hasOgsLink: !!ogsId, ogsLink: ogsId ? 'https://online-go.com/game/' + ogsId[1] : '',
+      edTitle: (I.opponent ? 'vs ' + I.opponent : 'New game') + (d.played_on ? ' · ' + mdOf(d.played_on) : ''),
+      edCols: hasBoard && !mobile ? 'minmax(0,1.1fr) minmax(0,1fr)' : 'minmax(0,1fr)', boardPos: mobile ? 'static' : 'sticky',
+      hasBoard, noBoard: !hasBoard, vb: `0 0 ${N} ${N}`, gridD, stars, stones, cellW: cell.toFixed(3) + '%',
+      boardCursor: tryKp || hasBoard ? 'pointer' : 'default', boardOutline: tryKp ? '3px solid var(--color-accent-2-500)' : 'none',
+      boardClick: e => { if (!hasBoard) return; const r = e.currentTarget.getBoundingClientRect(); const x = Math.floor((e.clientX - r.left) / r.width * N), y = Math.floor((e.clientY - r.top) / r.height * N);
+        if (x < 0 || y < 0 || x >= N || y >= N) return;
+        if (tryKp) { if (B.pos[showAt][y * N + x]) return this.say('There is already a stone there.'); this.patchKp(tryKp.id, { correct: nameOf(x, y, N) }); this.setState({ tryFor: null }); return; }
+        const base = vari ? vari.base : cur, prev = vari ? vari.moves.slice(0, vari.at) : [], bd0 = vari ? varBoards[vari.at] : B.pos[cur];
+        if (bd0[y * N + x]) return;
+        const c = nextColor(base, prev);
+        if (!applyMove(bd0, { x, y, stone: { c, m: -1, v: 1 } }, N)) return this.say('That move would be suicide.');
+        const moves = prev.concat([{ c, x, y }]);
+        this.setState({ vari: { base, moves, at: moves.length, savedId: vari ? vari.savedId : null } }); },
+      trying: !!tryKp, tryHint: tryKp ? 'Click the board to place the better move for move ' + tryKp.move_no : '', cancelTry: () => this.setState({ tryFor: null }),
+      navBtns: (vari ? [['|◀', -1, 'Variation start'], ['-10', Math.max(0, vari.at - 10), 'Back 10'], ['◀', vari.at - 1, 'Back 1'], ['▶', vari.at + 1, 'Forward 1'], ['+10', vari.at + 10, 'Forward 10'], ['▶|', vari.moves.length, 'Variation end']].map(([label, n, aria]) => ({ label, aria, onClick: vgo(n) }))
+        : [['|◀', 0, 'First move'], ['-10', cur - 10, 'Back 10'], ['◀', cur - 1, 'Back 1'], ['▶', cur + 1, 'Forward 1'], ['+10', cur + 10, 'Forward 10'], ['▶|', maxMove, 'Last move']].map(([label, n, aria]) => ({ label, aria, onClick: go(n) }))),
+      inVar: !!vari, varBg: vari ? 'var(--color-accent-2-200)' : 'var(--color-bg)',
+      varText: vari ? 'Variation · after move ' + vari.base + ' · ' + vari.at + ' / ' + vari.moves.length : 'Click an empty point to try a variation (colors alternate automatically)',
+      delDisabled: !vari, delNode: () => { if (!vari) return; if (vari.at === 0) return this.setState({ vari: null, cur: vari.base });
+        const moves = vari.moves.slice(0, vari.at - 1); this.setState(moves.length ? { vari: Object.assign({}, vari, { moves, at: moves.length }) } : { vari: null, cur: vari.base }); },
+      exitVar: () => this.setState({ vari: null, cur: vari ? vari.base : cur }),
+      ...(() => { const ex = vari && vari.savedId && savedArr.find(v => v.id === vari.savedId), PN = { rule: 'lessons', self: 'key moves' };
+        const saveTo = place => () => { if (!vari || !vari.moves.length) return this.say('Play at least one move of the variation first.');
+          if (ex) { setVars(savedArr.map(v => v.id === ex.id ? Object.assign({}, v, { base: vari.base, moves: vari.moves, place }) : v)); this.say('Variation updated under ' + PN[place] + ' — remember to press Save.'); return; }
+          const id = 'v' + Date.now(); setVars(savedArr.concat([{ id, base: vari.base, moves: vari.moves, note: '', place }])); this.setState({ vari: Object.assign({}, vari, { savedId: id }) }); this.say('Saved to ' + PN[place] + ' — remember to press Save.'); };
+        return { saveVar: saveTo('rule'), saveVarSelf: saveTo('self'), saveVarText: (ex ? 'Update in' : 'Save to') + ' lessons', saveVarSelfText: (ex ? 'Update in' : 'Save to') + ' key moves' }; })(),
+      hasVars: !!savedArr.length, varCount: savedArr.length, varTip: hasBoard && !savedArr.length,
+      ...(() => { const nos = [...new Set((String(I.self_moves || '').match(/\d+/g) || []).map(Number).filter(n => n >= 1 && n <= maxMove))].slice(0, 3);
+        const goN = n => () => this.setState({ cur: Math.max(0, Math.min(maxMove, n)), vari: null, tryFor: null });
+        const list = !ai ? [] : nos.map(i => { const m = B.line.moves[i - 1] || {}, b0 = ai.wr[i - 1], b1 = ai.wr[i], ls = lossAt(i), best = ai.best[i - 1];
+          const lo = Math.max(0, i - 10), hi = Math.min(maxMove, i + 10), pts = []; for (let k = lo; k <= hi; k++) if (ai.wr[k] != null) pts.push((pts.length ? 'L' : 'M') + (k - lo) + ' ' + (100 - ai.wr[k]).toFixed(1));
+          const me = m.pass ? 'pass' : nameOf(m.x, m.y, N), same = best && best === me;
+          const mine = c => m.c === 'B' ? c : 100 - c;
+          return { no: i, who: (m.c === 'B' ? 'Black ' : 'White ') + me, lossText: ls == null ? 'Not analyzed' : ls === 0 ? 'No loss' : 'Lost ' + ls + '%', lossClass: ls == null ? 'tag-neutral' : ls >= 8 ? 'tag-accent' : ls >= 3 ? 'tag-neutral' : 'tag-accent-2',
+            text: b0 == null || b1 == null ? 'This move has not been analyzed yet.' : (m.c === 'B' ? 'Black' : 'White') + ' win rate ' + Math.round(mine(b0)) + '% → ' + Math.round(mine(b1)) + '%' + (best && best !== 'pass' ? (same ? '. The AI picks the same move.' : '. The AI suggests ' + best + '.') : '.'),
+            vb: '0 0 ' + Math.max(1, hi - lo) + ' 100', w: Math.max(1, hi - lo), mx: i - lo, line: pts.join(' '), lo, hi, go: goN(i), goBest: goN(i - 1) }; });
+        return { selfAi: list, smHint: !nos.length || !ai, smHintText: !nos.length ? 'Enter your own key move numbers above; the AI’s win-rate swing and suggestion for each will appear here.' : 'Press “Analyze” and the AI’s view of these moves will appear here.' }; })(),
+      savedVars: savedArr.map(v => ({ place: v.place || 'rule', placeOpts: [['rule', 'Lessons'], ['self', 'Key moves']].map(([p, l]) => seg((v.place || 'rule') === p, l, () => setVars(savedArr.map(q => q.id === v.id ? Object.assign({}, q, { place: p }) : q)))), title: 'After move ' + v.base + ' · ' + v.moves.length + (v.moves.length === 1 ? ' move' : ' moves'), seq: seqOf(v.moves), note: v.note || '',
+        bg: vari && vari.savedId === v.id ? 'var(--color-accent-2-200)' : 'var(--color-bg)',
+        onNote: e => { const t = e.target.value; setVars(savedArr.map(q => q.id === v.id ? Object.assign({}, q, { note: t }) : q)); },
+        view: () => this.setState({ tryFor: null, cur: v.base, vari: { base: Math.min(v.base, maxMove), moves: v.moves, at: v.moves.length, savedId: v.id } }),
+        del: () => { setVars(savedArr.filter(q => q.id !== v.id)); if (vari && vari.savedId === v.id) this.setState({ vari: Object.assign({}, vari, { savedId: null }) }); } })),
+      numSize: (cell * 0.5).toFixed(2) + 'cqw',
+      aiVisits: String(s.aiVisits), visitOpts: [[25, 'Quick · 25'], [50, 'Normal · 50'], [100, 'Careful · 100'], [200, 'Deep · 200']].map(([v, l]) => ({ v: String(v), l })),
+      onAiVisits: e => this.setState({ aiVisits: Number(e.target.value) }), aiBusy: s.aiBusy, aiRunDisabled: false, aiBtn: s.aiBusy ? 'Stop' : ai ? 'Re-analyze' : 'Analyze',
+      runAi: () => s.aiBusy ? this.stopAi() : this.runAi(), toggleAiCfg: () => this.setState({ aiCfgOpen: !s.aiCfgOpen }), aiCfgOpen: s.aiCfgOpen,
+      aiUrl: s.aiUrl, aiToken: s.aiToken, onAiUrl: e => this.setState({ aiUrl: e.target.value }), onAiToken: e => this.setState({ aiToken: e.target.value }), saveAiCfg: () => this.saveAiCfg(),
+      aiEngine: s.aiEngine, aiIsLocal: s.aiEngine === 'local', aiIsServer: s.aiEngine !== 'local', aiModel: s.aiModel, aiIsCustom: s.aiModel === 'custom', aiModelUrl: s.aiModelUrl,
+      modelOpts: ((window.WQKata && window.WQKata.MODELS) || [{ id: 'b10', label: 'Standard b10' }]).map(m => ({ v: m.id, l: m.label })),
+      onAiEngine: e => this.setState({ aiEngine: e.target.value }), onAiModel: e => this.setState({ aiModel: e.target.value }), onAiModelUrl: e => this.setState({ aiModelUrl: e.target.value }),
+      aiSaveText: s.aiEngine === 'local' ? 'Save and load model' : 'Save and test',
+      aiEngineTag: s.aiEngine === 'local' ? 'Browser · ' + (((window.WQKata && window.WQKata.MODELS) || []).find(m => m.id === s.aiModel) || { id: s.aiModel }).id : 'Self-hosted',
+      hasAiMsg: !!s.aiMsg, aiMsg: s.aiMsg, aiMsgColor: s.aiErr ? 'var(--color-accent-800)' : 'var(--color-neutral-800)',
+      hasAi: !!ai, gW: Math.max(1, maxMove), curX: vari ? vari.base : cur,
+      wrLine: ai ? ai.wr.map((v, i) => v == null ? null : (i ? 'L' : 'M') + i + ' ' + (100 - v).toFixed(1)).filter(Boolean).join(' ').replace(/^L/, 'M') : '',
+      wrArea: ai ? (() => { const pts = ai.wr.map((v, i) => v == null ? null : [i, 100 - v]).filter(Boolean); return pts.length ? 'M' + pts[0][0] + ' 100 ' + pts.map(p => 'L' + p[0] + ' ' + p[1].toFixed(1)).join(' ') + ' L' + pts[pts.length - 1][0] + ' 100 Z' : ''; })() : '',
+      graphClick: e => { const r = e.currentTarget.getBoundingClientRect(); const n = Math.round((e.clientX - r.left) / r.width * maxMove); this.setState({ cur: Math.max(0, Math.min(maxMove, n)), vari: null, tryFor: null }); },
+      ...(() => { const mk = [];
+        const topOf = c => { const L = []; if (ai) for (let i = 1; i <= maxMove; i++) { const m = B.line.moves[i - 1], v = lossAt(i); if (m && m.c === c && v != null && v > 0) L.push({ i, v, w: ai.wr[i] }); } return L.sort((a, b) => b.v - a.v).slice(0, 3); };
+        const tb = topOf('B'), tw = topOf('W');
+        if (ai) { const seen = new Set(); tb.concat(tw).forEach(m => { seen.add(m.i); mk.push(m); });
+          const extra = []; for (let i = 1; i <= maxMove; i++) { const v = lossAt(i), w = ai.wr[i]; if (!seen.has(i) && v != null && w != null && v >= 8) extra.push({ i, v, w }); }
+          extra.sort((a, b) => b.v - a.v); mk.push(...extra.slice(0, Math.max(0, 10 - mk.length))); mk.sort((a, b) => a.i - b.i); }
+        const go = i => e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ cur: i, vari: null, tryFor: null }); };
+        const colorOf = i => (B.line.moves[i - 1] || {}).c === 'B' ? 'Black' : 'White';
+        const wrMarks = mk.map(m => ({ no: m.i, left: (m.i / Math.max(1, maxMove) * 100) + '%', top: Math.max(6, Math.min(94, 100 - m.w)) + '%',
+          tip: 'Move ' + m.i + ' (' + colorOf(m.i) + ') · lost ' + m.v + '%', go: go(m.i) }));
+        const chip = m => ({ label: 'Move ' + m.i + ' −' + m.v + '%', go: go(m.i) });
+        return { wrMarks, hasWrMarks: wrMarks.length > 0, lossB: tb.map(chip), lossW: tw.map(chip), hasLossB: tb.length > 0, hasLossW: tw.length > 0, hasLossTop: tb.length + tw.length > 0 }; })(),
+      markTopText: I.my_color === '黑' || I.my_color === '白' ? 'Mark my (' + COL[I.my_color] + ') 3 biggest losses as key moves' : 'Mark the 3 biggest losses as key moves',
+      aiNow: ai ? (() => { const at0 = vari ? vari.base : cur, w = ai.wr[at0], l = ai.lead[at0], ls = lossAt(at0), b = ai.best[at0];
+        if (w == null) return 'This move has not been analyzed yet.';
+        return [(vari ? 'Variation start (move ' + at0 + ')' : at0 === 0 ? 'Start' : 'Move ' + at0) + ': Black win rate ' + Math.round(w) + '%', l != null ? (l >= 0 ? 'Black' : 'White') + ' leads by ' + Math.abs(l).toFixed(1) + ' pts' : '', ls != null ? 'this move lost ' + ls + '%' : '', b ? 'AI’s next move: ' + (b === 'pass' ? 'pass' : b) + ' (green ring)' : ''].filter(Boolean).join(' · '); })() : '',
+      markTop: () => { if (!ai) return; const have = new Set(d.points.map(p => Number(p.move_no)));
+        const myC = I.my_color === '黑' ? 'B' : I.my_color === '白' ? 'W' : null;
+        const L = []; for (let i = 1; i <= maxMove; i++) { const v = lossAt(i), m = B.line.moves[i - 1]; if (v != null && !have.has(i) && (!myC || (m && m.c === myC))) L.push([i, v]); }
+        L.sort((x, y) => y[1] - x[1]); const top = L.slice(0, 3); if (!top.length) return this.say('No moves left to add.');
+        this.addKps(top.map(([i, v]) => { const m = B.line.moves[i - 1], b = ai.best[i - 1]; return { move_no: i, my_move: m.pass ? 'pass' : nameOf(m.x, m.y, N), loss: v, correct: b && b !== 'pass' ? b : '' }; }));
+        this.say('Added moves ' + top.map(t => t[0]).sort((x, y) => x - y).join(', ') + '.'); },
+      moveText: vari ? (vari.at === 0 ? 'Variation start' : 'Variation ' + vari.at + ' · ' + (vari.moves[vari.at - 1].c === 'B' ? 'B' : 'W') + ' ' + nameOf(vari.moves[vari.at - 1].x, vari.moves[vari.at - 1].y, N)) : cur === 0 ? 'Start / ' + maxMove + ' moves' : 'Move ' + cur + ' / ' + maxMove + ' · ' + (mv.c === 'B' ? 'B' : 'W') + ' ' + (mv.pass ? 'pass' : nameOf(mv.x, mv.y, N)),
+      maxMove, cur, onSlide: e => this.setState({ cur: Number(e.target.value), tryFor: null, vari: null }),
+      markDisabled: !!vari || cur === 0 || kpNos.has(cur), markText: cur === 0 ? 'Go to the move you want to mark' : kpNos.has(cur) ? 'Move ' + cur + ' is already a key move' : 'Mark move ' + cur + ' as a key move',
+      markKp: () => { if (!mv) return; const ls = lossAt(cur), b = ai && ai.best[cur - 1]; this.addKp(cur, mv.pass ? 'pass' : nameOf(mv.x, mv.y, N), Object.assign({}, ls != null ? { loss: ls } : {}, b && b !== 'pass' ? { correct: b } : {})); },
+      dPlayed: d.played_on || '', onPlayed: e => { const v = e.target.value; this.setState(st => ({ draft: Object.assign({}, st.draft, { played_on: v }) })); },
+      inp, on, venueOpts: opts(VENUES, I.venue), rankOpts: RANKS, endOpts: opts(ENDS, I.end), sourceOpts: opts(SOURCES, I.source), mtOpts: MTL.map(([v, l]) => ({ v, l })),
+      komiPts, onKomi: e => { const v = num(e.target.value); this.patchInfo('komi', v == null ? '' : trimN(ruleCN ? v / 2 : v)); },
+      marginPts, onMargin: e => { const v = num(e.target.value); const p = { margin: v == null ? '' : trimN(v) };
+        if (ruleCN) p.count = v == null || blackWon == null ? '' : trimN(N * N / 2 + (kStored || 0) + (blackWon ? v / 2 : -v / 2));
+        this.patchInfo(p); },
+      colorOpts: ['黑', '白'].map(c => seg(I.my_color === c, COL[c], () => this.pickColor(c))),
+      ruleOpts: ['中國', '日本'].map(c => seg((I.rules || '中國') === c, RULE[c], () => { if ((I.rules || '中國') === c) return;
+        const p = { rules: c, end: I.end === '數子' && c === '日本' ? '數目' : I.end === '數目' && c === '中國' ? '數子' : I.end };
+        if (kStored != null) p.komi = trimN(c === '中國' ? kStored / 2 : kStored * 2);
+        this.patchInfo(p); })),
+      resOpts: ['勝', '負', '和'].map(c => seg(I.result === c, RES[c], () => this.patchInfo('result', c))),
+      showMargin: counted,
+      needColor: !I.my_color && !!d.sgf, hasSgfRes: !!I.fox_result, sgfRes: I.fox_result || '',
+      kpCount: d.points.length, hitText: d.points.length ? 'Among my own 3 key moves: ' + hits + ' / ' + d.points.length : '',
+      kpEmpty: !d.points.length, kpEmptyText: hasBoard ? 'Step to a move with the controls under the board, then press “Mark move … as a key move”.' : 'This game has no record. Enter a move number to add a key move.',
+      manualNo: s.manualNo, onManualNo: e => this.setState({ manualNo: e.target.value }),
+      addManualKp: () => { const n = parseInt(s.manualNo); if (!(n > 0)) return this.say('Enter a move number.'); this.addKp(n, ''); this.setState({ manualNo: '' }); },
+      kps: d.points.map(p => { const o = {}; ['my_move', 'correct', 'loss', 'thought', 'type'].forEach(k => { o[k] = e => this.patchKp(p.id, { [k]: e.target.value }); });
+        return { no: p.move_no, my: p.my_move || '', correct: p.correct || '', loss: p.loss ?? '', thought: p.thought || '', type: p.type || MT[0], on: o,
+          bg: s.tryFor === p.id ? 'var(--color-accent-2-200)' : 'var(--color-bg)',
+          jump: () => { if (hasBoard) this.setState({ cur: Math.min(maxMove, Number(p.move_no)), tryFor: null }); },
+          tryIt: () => this.setState({ tryFor: p.id }),
+          del: () => this.setState(st => ({ tryFor: null, draft: Object.assign({}, st.draft, { points: st.draft.points.filter(x => x.id !== p.id) }) })),
+          selfOpts: [[true, 'Yes'], [false, 'No']].map(([v, l]) => seg(!!p.in_self === v, l, () => this.patchKp(p.id, { in_self: v }))) }; })
+    });
+    const sv = R0.savedVars || [], rv = sv.filter(v => v.place !== 'self'), fv = sv.filter(v => v.place === 'self');
+    return Object.assign(R0, { ruleVars: rv, hasRuleVars: !!rv.length, ruleVarCount: rv.length, selfVars: fv, hasSelfVars: !!fv.length, selfVarCount: fv.length });
+  }
+}
+
+</script>
+</body>
+</html>
