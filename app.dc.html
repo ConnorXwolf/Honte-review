@@ -11,8 +11,8 @@
 <helmet>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Honte Review · Go game review with OGS and KataGo</title>
-<link rel="icon" type="image/png" href="favicon.png?v=1">
-<link rel="apple-touch-icon" href="icon.png?v=1">
+<link rel="icon" type="image/png" href="favicon.png?v=2">
+<link rel="apple-touch-icon" href="icon.png?v=2">
 <link rel="stylesheet" href="assets/styles.css?v=1">
 <script src="config.js?v=1"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -26,11 +26,14 @@
 </sc-if>
 
 <sc-if value="{{ showGate }}" hint-placeholder-val="{{ true }}">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
+  <div style="min-height:100vh;display:flex;justify-content:center;padding:40px 16px 32px;box-sizing:border-box">
     <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:20px">
-      <div style="display:flex;flex-direction:column;gap:8px">
-        <span style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700)">Honte · 本手</span>
-        <h1 style="margin:0;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:44px;line-height:1.1">Game Review</h1>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding-bottom:8px">
+        <h1 style="margin:0;display:flex;align-items:center;justify-content:center;gap:clamp(14px,4vw,24px);flex-wrap:wrap">
+          <img src="assets/taiji.png?v=1" alt="" aria-hidden="true" width="233" height="233" style="width:clamp(88px,26vw,132px);height:auto;display:block">
+          <img src="assets/honte-wordmark.png?v=1" alt="Honte" width="143" height="42" style="height:clamp(52px,15vw,76px);width:auto;display:block">
+        </h1>
+        <span style="font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Game Review · 本手</span>
         <p style="margin:0;font-size:16px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Pull your games from OGS, mark the moves that decided them, let KataGo check your reading, and keep the lessons for your next game.</p>
       </div>
 
@@ -77,7 +80,7 @@
 <sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
   <div style="max-width:1280px;margin:0 auto;padding:20px 16px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-      <span style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:28px;margin-right:auto">Game Review</span>
+      <a href="app.dc.html" aria-label="Honte home" style="display:flex;align-items:center;gap:10px;margin-right:auto;text-decoration:none"><img src="assets/taiji.png?v=1" alt="" aria-hidden="true" width="233" height="233" style="width:44px;height:44px;display:block"><img src="assets/honte-wordmark.png?v=1" alt="Honte" width="143" height="42" style="height:34px;width:auto;display:block"></a>
       <a class="tag tag-accent-2" href="{{ ogsLink }}" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none">{{ ogsTag }}</a>
       <button class="tag tag-outline" style="white-space:nowrap;cursor:pointer;font:inherit;font-size:12px" title="Copy code" onClick="{{ copyMine }}">{{ codeText }}</button>
       <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ leave }}">{{ leaveText }}</button>
