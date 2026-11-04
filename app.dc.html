@@ -1,16 +1,171 @@
-# Self-hosted KataGo server (optional)
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Honte Review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Honte Review · Go game review with OGS and KataGo</title>
+<link rel="icon" type="image/png" href="favicon.png?v=1">
+<link rel="apple-touch-icon" href="icon.png?v=1">
+<link rel="stylesheet" href="assets/styles.css?v=1">
+<script src="config.js?v=1"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="api.js?v=1"></script>
+<style>body{margin:0;background:var(--color-bg)}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}button{font-family:inherit}</style>
+</helmet>
+<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
 
-Only needed if you'd rather not run KataGo in the browser. Tested on Oracle Cloud's free ARM VM (4 OCPU, 24 GB).
+<sc-if value="{{ booting }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:grid;place-items:center"><span class="tag tag-neutral">Loading…</span></div>
+</sc-if>
 
-1. Create an Ubuntu 22.04/24.04 VM and open ports 80 and 443.
-2. SSH in, then:
-   ```
-   sudo apt-get update && sudo apt-get install -y git
-   git clone https://github.com/ConnorXwolf/honte-review.git
-   cd honte-review/katago-server
-   sudo bash setup.sh YOUR-PASSWORD
-   ```
-   Building KataGo takes 15–25 minutes. The script prints the server URL (`https://1-2-3-4.sslip.io`) and password.
-3. In Honte Review, open a game → **AI win rate → Settings** → Engine **Self-hosted server**. Enter the URL and password, then **Save and test**.
+<sc-if value="{{ showGate }}" hint-placeholder-val="{{ true }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
+    <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-700)">Honte · 本手</span>
+        <h1 style="margin:0;font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:44px;line-height:1.1">Game Review</h1>
+        <p style="margin:0;font-size:16px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Pull your games from OGS, mark the moves that decided them, let KataGo check your reading, and keep the lessons for your next game.</p>
+      </div>
 
-Maintenance: `sudo systemctl status benshou-katago caddy` · restart with `sudo systemctl restart benshou-katago`.
+      <div class="card" style="padding:22px 24px;gap:14px">
+        <span class="card-title">Sign in with your code</span>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:200px"><label for="code">12-character code</label><input id="code" class="input" value="{{ code }}" onChange="{{ onCode }}" onKeyDown="{{ onCodeKey }}" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false"></div>
+          <button class="btn btn-primary" style="white-space:nowrap" disabled="{{ signDisabled }}" onClick="{{ signIn }}">{{ signBtn }}</button>
+        </div>
+        <sc-if value="{{ hasSignErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-accent-800)">{{ signErr }}</div></sc-if>
+      </div>
+
+      <div class="card" style="padding:22px 24px;gap:14px">
+        <span class="card-title">No code yet? Enter your OGS ID</span>
+        <div style="font-size:14px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Your OGS username, player ID or profile URL. You'll get a 12-character code linked to that OGS account — it's how you sign in on any device.</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+          <div class="field" style="flex:1;min-width:200px"><label for="ogs-id">OGS username, player ID or profile URL</label><input id="ogs-id" class="input" value="{{ ogsInput }}" onChange="{{ onOgsInput }}" onKeyDown="{{ onOgsKey }}" placeholder="e.g. Connor, 123456 or online-go.com/player/123456" autocomplete="off" spellcheck="false"></div>
+          <button class="btn btn-secondary" style="white-space:nowrap" disabled="{{ createDisabled }}" onClick="{{ create }}">{{ createBtn }}</button>
+        </div>
+        <sc-if value="{{ hasCreateErr }}" hint-placeholder-val="{{ false }}"><div style="font-size:14px;color:var(--color-accent-800)">{{ createErr }}</div></sc-if>
+      </div>
+
+      <sc-if value="{{ noCloud }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--color-neutral-700)">Sign-in isn't set up on this copy of the site yet (config.js). The demo still works.</div></sc-if>
+      <div style="font-size:14px"><button class="btn btn-ghost" style="white-space:nowrap" onClick="{{ useDemo }}">Try the demo — nothing is saved</button></div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showNewCode }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
+    <div class="card" style="width:100%;max-width:520px;padding:28px;gap:16px;box-sizing:border-box">
+      <span class="card-title">Your sign-in code</span>
+      <div style="font-size:14px;color:var(--color-neutral-800)">Linked to OGS player <strong>{{ newOgsName }}</strong></div>
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:clamp(24px,7vw,34px);font-weight:700;letter-spacing:.06em;padding:16px 18px;border-radius:var(--radius-lg);background:var(--color-bg);text-align:center;user-select:all">{{ newCode }}</div>
+      <div style="font-size:14px;line-height:1.5;padding:12px 14px;border-radius:var(--radius-lg);background:var(--color-accent-100);color:var(--color-accent-800);text-wrap:pretty">Save this code somewhere safe. It is the only way to sign in on another device, and it can't be recovered — entering your OGS ID again creates a new, empty account.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ copyNew }}">{{ copyText }}</button>
+        <button class="btn btn-primary" style="white-space:nowrap" onClick="{{ continueNew }}">I've saved it — continue</button>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
+  <div style="max-width:1280px;margin:0 auto;padding:20px 16px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-family:var(--font-heading);font-weight:var(--font-heading-weight);font-size:28px;margin-right:auto">Game Review</span>
+      <a class="tag tag-accent-2" href="{{ ogsLink }}" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none">{{ ogsTag }}</a>
+      <button class="tag tag-outline" style="white-space:nowrap;cursor:pointer;font:inherit;font-size:12px" title="Copy code" onClick="{{ copyMine }}">{{ codeText }}</button>
+      <button class="btn btn-secondary" style="white-space:nowrap" onClick="{{ leave }}">{{ leaveText }}</button>
+    </div>
+    <dc-import name="review" api="{{ api }}" profile="{{ profile }}" on-save-profile="{{ saveProfile }}" mobile="{{ mobile }}" toast="{{ toastFn }}" hint-size="100%,600px"></dc-import>
+  </div>
+</sc-if>
+
+<sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+  <div role="status" style="position:fixed;left:50%;bottom:24px;transform:translateX(-50%);padding:12px 22px;border-radius:999px;background:var(--color-text);color:var(--color-bg);font-size:14px;box-shadow:var(--shadow-lg);z-index:30;max-width:90vw;text-align:center">{{ toast }}</div>
+</sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":900}}'>
+class Component extends DCLogic {
+  state = { booting: true, mode: '', api: null, profile: null, code: '', ogsInput: '', signing: false, creating: false, signErr: '', createErr: '', newCode: '', copied: false, toast: '', mobile: false, myCode: '' };
+  componentDidMount() {
+    const mq = window.matchMedia ? window.matchMedia('(max-width: 720px)') : null;
+    if (mq) { this._mq = () => this.setState({ mobile: mq.matches }); this._mq(); mq.addEventListener ? mq.addEventListener('change', this._mq) : mq.addListener(this._mq); this._mqObj = mq; }
+    this.boot();
+  }
+  componentWillUnmount() { clearTimeout(this._t); if (this._mqObj && this._mq) { this._mqObj.removeEventListener ? this._mqObj.removeEventListener('change', this._mq) : this._mqObj.removeListener(this._mq); } }
+  toast(m) { clearTimeout(this._t); this.setState({ toast: m }); this._t = setTimeout(() => this.setState({ toast: '' }), 3200); }
+  cloud() { return !!(window.WQHasCloud && window.WQHasCloud()); }
+  async boot() {
+    if (!window.WQBoot) return this.setState({ booting: false, signErr: 'api.js did not load. Check that it sits next to this page.' });
+    if (/[?&]demo=1\b/.test(location.search)) return this.enter('demo');
+    if (!this.cloud()) return this.setState({ booting: false });
+    try { const api = window.WQBoot('cloud'), profile = await api.current();
+      if (profile) return this.setState({ booting: false, mode: 'cloud', api, profile, myCode: await api.myCode() }); }
+    catch (e) {}
+    this.setState({ booting: false });
+  }
+  async enter(mode) {
+    const api = window.WQBoot(mode), profile = await api.current();
+    this.setState({ booting: false, mode, api, profile, myCode: await api.myCode() });
+  }
+  async signIn() {
+    if (this.state.signing) return;
+    if (!this.cloud()) return this.setState({ signErr: "Sign-in isn't set up on this site yet." });
+    this.setState({ signing: true, signErr: '' });
+    try { const api = window.WQBoot('cloud'), profile = await api.signIn(this.state.code);
+      this.setState({ signing: false, code: '', mode: 'cloud', api, profile, myCode: await api.myCode() }); }
+    catch (e) { this.setState({ signing: false, signErr: e.message }); }
+  }
+  async create() {
+    if (this.state.creating) return;
+    const input = this.state.ogsInput.trim(); if (!input) return this.setState({ createErr: 'Enter your OGS username, player ID or profile URL.' });
+    if (!this.cloud()) return this.setState({ createErr: "Sign-in isn't set up on this site yet." });
+    this.setState({ creating: true, createErr: '' });
+    try { const api = window.WQBoot('cloud'), r = await api.createAccount(input);
+      this.setState({ creating: false, ogsInput: '', newCode: r.code, copied: false, api, profile: r.profile, myCode: r.code }); }
+    catch (e) { this.setState({ creating: false, createErr: e.message }); }
+  }
+  copy(text, done) {
+    const ok = () => { if (done) done(); else this.toast('Code copied.'); };
+    try { navigator.clipboard.writeText(text).then(ok, () => this.toast(text)); } catch (e) { this.toast(text); }
+  }
+  async leave() {
+    const s = this.state;
+    try { if (s.mode === 'cloud' && s.api) await s.api.signOut(); } catch (e) {}
+    this.setState({ mode: '', api: null, profile: null, myCode: '', newCode: '' });
+  }
+  async saveProfile(patch) {
+    const s = this.state; if (!s.api) return;
+    this.setState({ profile: Object.assign({}, s.profile, JSON.parse(JSON.stringify(patch))) });
+    try { await s.api.saveProfile(patch); } catch (e) { this.toast('Could not save settings: ' + e.message); }
+  }
+  renderVals() {
+    const s = this.state, fmt = c => (window.WQCode ? window.WQCode.fmt(c) : c), p = s.profile || {};
+    const inApp = !!(s.api && s.profile), cloud = this.cloud();
+    return {
+      booting: s.booting, showGate: !s.booting && !inApp, showNewCode: !s.booting && inApp && !!s.newCode, showApp: !s.booting && inApp && !s.newCode,
+      code: s.code, onCode: e => this.setState({ code: e.target.value }), onCodeKey: e => { if (e.key === 'Enter') this.signIn(); },
+      signDisabled: s.signing, signBtn: s.signing ? 'Signing in…' : 'Sign in', signIn: () => this.signIn(), hasSignErr: !!s.signErr, signErr: s.signErr,
+      ogsInput: s.ogsInput, onOgsInput: e => this.setState({ ogsInput: e.target.value }), onOgsKey: e => { if (e.key === 'Enter') this.create(); },
+      createDisabled: s.creating, createBtn: s.creating ? 'Creating…' : 'Get my code', create: () => this.create(), hasCreateErr: !!s.createErr, createErr: s.createErr,
+      noCloud: !cloud, useDemo: () => this.enter('demo'),
+      newCode: fmt(s.newCode), newOgsName: p.ogs_username || ('#' + (p.ogs_id || '')), copyText: s.copied ? 'Copied' : 'Copy code',
+      copyNew: () => this.copy(fmt(s.newCode), () => this.setState({ copied: true })), continueNew: () => this.setState({ newCode: '' }),
+      ogsTag: 'OGS · ' + (p.ogs_username || ('#' + (p.ogs_id || ''))), ogsLink: p.ogs_id ? 'https://online-go.com/player/' + p.ogs_id : 'https://online-go.com',
+      codeText: s.mode === 'demo' ? 'Demo · nothing is saved' : 'Code ' + fmt(s.myCode), copyMine: () => s.mode !== 'demo' && this.copy(fmt(s.myCode)),
+      leaveText: s.mode === 'demo' ? 'Leave demo' : 'Sign out', leave: () => this.leave(),
+      api: s.api, profile: s.profile, saveProfile: patch => this.saveProfile(patch), mobile: s.mobile, toastFn: m => this.toast(m),
+      hasToast: !!s.toast, toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
