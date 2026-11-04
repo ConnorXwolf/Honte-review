@@ -3,17 +3,19 @@
 -- Also required: Authentication → Sign In / Providers → Email → turn OFF "Confirm email"
 -- (accounts use generated codes, not real email addresses).
 
--- One row per account. Each account is linked to one OGS player.
+-- One row per account. An account may be linked to one OGS player (ogs_id), or not linked yet (null).
 -- Several codes may link to the same OGS player: a code is never handed out again, so typing
 -- someone's OGS name only ever creates a new, empty account — it never reveals theirs.
 create table if not exists public.review_profiles (
   id           uuid primary key references auth.users on delete cascade,
-  ogs_id       bigint not null,
+  ogs_id       bigint,
   ogs_username text,
   settings     jsonb not null default '{}'::jsonb,   -- KataGo engine/model/visits, etc.
   created_at   timestamptz not null default now()
 );
 create index if not exists review_profiles_ogs on public.review_profiles (ogs_id);
+-- For databases created before accounts without OGS existed:
+alter table public.review_profiles alter column ogs_id drop not null;
 
 create table if not exists public.review_games (
   id         uuid primary key default gen_random_uuid(),
