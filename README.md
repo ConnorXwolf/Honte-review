@@ -35,7 +35,7 @@ OGS games come in with players, ranks, komi, rules, handicap, time control and r
 ### KataGo win rate
 - **Analyze** runs KataGo on every move: the graph shows Black's win rate, and red dots mark the turning points.
 - **Mark my 3 biggest losses as key moves** adds them with KataGo's suggested move.
-- Settings: model (standard b10 · light b24c64 for phones · strong b40 for desktop WebGPU) and visits per move (25–200).
+- Settings: model (standard b10 · light b6c96 for phones · strong b40 for desktop WebGPU) and visits per move (25–200).
 - Chrome or Edge on a computer uses WebGPU and is fastest. Other browsers fall back to WASM.
 - Prefer your own hardware? Choose **Self-hosted server** (see `katago-server/`).
 

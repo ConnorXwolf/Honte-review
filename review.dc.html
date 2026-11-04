@@ -119,7 +119,7 @@
                   <div class="field"><label for="ai-engine">Engine</label><select id="ai-engine" class="input" value="{{ aiEngine }}" onChange="{{ onAiEngine }}"><option value="local">In this browser</option><option value="server">Self-hosted server</option></select></div>
                   <sc-if value="{{ aiIsLocal }}" hint-placeholder-val="{{ true }}">
                     <div class="field"><label for="ai-model">Model</label><select id="ai-model" class="input" value="{{ aiModel }}" onChange="{{ onAiModel }}"><sc-for list="{{ modelOpts }}" as="o" hint-placeholder-count="4"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
-                    <sc-if value="{{ aiIsCustom }}" hint-placeholder-val="{{ false }}"><div class="field"><label for="ai-model-url">Model URL</label><input id="ai-model-url" class="input" value="{{ aiModelUrl }}" onChange="{{ onAiModelUrl }}" placeholder="https://…/model.bin.gz"></div></sc-if>
+                    <sc-if value="{{ aiIsCustom }}" hint-placeholder-val="{{ false }}"><div class="field"><label for="ai-model-url">Model URL</label><input id="ai-model-url" class="input" value="{{ aiModelUrl }}" onChange="{{ onAiModelUrl }}" placeholder="https://…/model.bin.gz or .txt.gz"></div></sc-if>
                   </sc-if>
                   <sc-if value="{{ aiIsServer }}" hint-placeholder-val="{{ false }}">
                   <div class="field"><label for="ai-url">Server URL</label><input id="ai-url" class="input" value="{{ aiUrl }}" onChange="{{ onAiUrl }}" placeholder="https://1-2-3-4.sslip.io"></div>
@@ -270,7 +270,7 @@
                   <div class="field"><label>I played</label><input class="input" aria-label="I played" value="{{ k.my }}" onChange="{{ k.on.my_move }}" placeholder="e.g. R5"></div>
                   <div class="field"><label>Better move</label><div style="display:flex;gap:6px"><input class="input" aria-label="Better move" style="min-width:0;flex:1" value="{{ k.correct }}" onChange="{{ k.on.correct }}" placeholder="e.g. S4"><sc-if value="{{ hasBoard }}" hint-placeholder-val="{{ false }}"><button class="btn btn-secondary" style="white-space:nowrap;padding:6px 12px" onClick="{{ k.tryIt }}">Place</button></sc-if></div></div>
                   <div class="field"><label>Loss (win rate %)</label><input class="input" aria-label="Loss (win rate %)" type="number" min="0" max="100" value="{{ k.loss }}" onChange="{{ k.on.loss }}"></div>
-                  <div class="field"><label>Mistake type</label><select class="input" aria-label="Mistake type" value="{{ k.type }}" onChange="{{ k.on.type }}"><sc-for list="{{ mtOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
+                  <div class="field" style="grid-column:1/-1"><label>Mistake type</label><select class="input" aria-label="Mistake type" value="{{ k.type }}" onChange="{{ k.on.type }}"><sc-for list="{{ mtOpts }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.l }}</option></sc-for></select></div>
                 </div>
                 <div class="field"><label>What I was thinking</label><textarea class="input" aria-label="What I was thinking" rows="2" style="border-radius:var(--radius-lg);resize:vertical" value="{{ k.thought }}" onChange="{{ k.on.thought }}"></textarea></div>
                 <div class="field"><label>One of my 3 key moves</label><div class="seg" style="align-self:flex-start"><sc-for list="{{ k.selfOpts }}" as="p" hint-placeholder-count="2"><button class="seg-opt" onClick="{{ p.onClick }}" style="border:0;background:{{ p.bg }};color:{{ p.color }};white-space:nowrap">{{ p.label }}</button></sc-for></div></div>
@@ -406,7 +406,7 @@ class Component extends DCLogic {
   componentDidMount() {
     const set = (this.props.profile || {}).settings || {};
     const kg = set.katago || {};
-    this.setState({ ogs: Object.assign({}, this.state.ogs, { otherName: set.ogsOther || '' }), aiUrl: kg.url || '', aiToken: kg.token || '', aiVisits: kg.visits || 50, aiEngine: kg.engine || (kg.url ? 'server' : 'local'), aiModel: (((window.WQKata && window.WQKata.MODELS) || []).some(x => x.id === kg.model) ? kg.model : 'b10'), aiModelUrl: kg.modelUrl || '' });
+    this.setState({ ogs: Object.assign({}, this.state.ogs, { otherName: set.ogsOther || '' }), aiUrl: kg.url || '', aiToken: kg.token || '', aiVisits: kg.visits || 50, aiEngine: kg.engine || (kg.url ? 'server' : 'local'), aiModel: (m => (((window.WQKata && window.WQKata.MODELS) || []).some(x => x.id === m) ? m : 'b10'))(kg.model === 'b24' ? 'b6' : kg.model), aiModelUrl: kg.modelUrl || '' });
     this.loadGames();
   }
   async loadGames() {

@@ -5,9 +5,9 @@
   const BASE = new URL('.', document.currentScript ? document.currentScript.src : location.href).href;
   const MODELS = [
     { id: 'b10', label: 'Standard b10', file: 'kata1-b10c128.bin.gz', fallback: 'https://connorxwolf.github.io/Honte-Benshou/katago/models/kata1-b10c128.bin.gz' },
-    { id: 'b24', label: 'Light lionffen b24c64 (works on phones)', file: 'lionffen_b24c64.bin.gz' },
+    { id: 'b6', label: 'Light b6c96 (fast, works on phones)', url: 'https://huggingface.co/ConnerXwolf/katago_b6/resolve/main/kata1-b6c96-s175395328-d26788732.txt.gz' },
     { id: 'b40', label: 'Strong b40c256 (~170 MB, desktop WebGPU only, slow)', url: 'https://huggingface.co/ConnerXwolf/katago-models/resolve/main/kata1-b40c256-s11385575424-d2784196062.bin.gz', heavy: true },
-    { id: 'custom', label: 'Custom model URL (.bin.gz)', file: '' }
+    { id: 'custom', label: 'Custom model URL (.bin.gz or .txt.gz)', file: '' }
   ];
   const LIB = BASE + 'lib/katago-web.js';
   let lib = null, client = null, loadedKey = '', loadedUrl = '', loading = null, accel = '';
@@ -39,7 +39,7 @@
       await check(BASE + 'lib/worker.js', 'katago/lib/worker.js');
       const mm = MODELS.find(x => x.id === id) || {};
       const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-      if (mm.heavy && (!navigator.gpu || mobile)) throw new Error('b40c256 needs WebGPU in a desktop browser (Chrome / Edge). On phones or browsers without WebGPU, use b10 or b24.');
+      if (mm.heavy && (!navigator.gpu || mobile)) throw new Error('b40c256 needs WebGPU in a desktop browser (Chrome / Edge). On phones or browsers without WebGPU, use b10 or b6.');
       if (!mm.url) { try { await check(url, 'model file'); } catch (e) { if (!mm.fallback) throw e; url = mm.fallback; say('Model not in this repo — loading it from ' + new URL(url).host + '…'); } }
       const tries = mm.heavy ? ['webgpu'] : navigator.gpu ? ['webgpu', 'wasm'] : ['wasm'];
       let lastErr;

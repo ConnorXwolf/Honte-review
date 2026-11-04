@@ -13,7 +13,6 @@ katago/
 │   ├── worker.js
 │   └── *.wasm
 └── models/
-    ├── lionffen_b24c64.bin.gz   (in the repo)
     └── kata1-b10c128.bin.gz     (optional — loaded from the Honte-Benshou site if missing)
 ```
 
@@ -31,14 +30,14 @@ copy <path-to-this-repo>\katago\build-legacy.mjs .
 node build-legacy.mjs
 ```
 
-Copy everything in `out-legacy\` into `katago/lib/`. PowerShell may print esbuild output in red as `NativeCommandError`; if it ends with the bundle size and `Done`, the build worked.
+Copy everything in `out-legacy\` into `katago/lib/`. Then run `python katago/patch-txt-models.py katago/lib/worker.js katago/lib/katago-web.js` so text-format (`.txt.gz`) models keep working. PowerShell may print esbuild output in red as `NativeCommandError`; if it ends with the bundle size and `Done`, the build worked.
 
 ## Models
 
-From https://katagotraining.org/networks/ — `.bin.gz` only (old `.txt.gz` models don't load):
+From https://katagotraining.org/networks/ — `.bin.gz` or `.txt.gz` (this repo's `lib/` is patched to read text-format models):
 
 - Standard: a b10c128 network → rename to `kata1-b10c128.bin.gz`
-- Light: `lionffen_b24c64.bin.gz` (keep the name)
+- Light: kata1-b6c96 (`.txt.gz`), loaded from Hugging Face (`ConnerXwolf/katago_b6`)
 - Strong b40c256 is loaded from Hugging Face; desktop WebGPU only.
 
 GitHub's web uploader caps files at 25 MB; use git or GitHub Desktop for bigger models.
@@ -55,7 +54,7 @@ Results are saved with the game, so reopening it doesn't re-run the analysis.
 
 - Fastest: Chrome or Edge on a computer (WebGPU, picked automatically).
 - Without WebGPU it falls back to WASM, single-threaded on GitHub Pages — slower.
-- On phones use the light lionffen b24c64 model with 25 visits.
+- On phones use the light b6c96 model with 25 visits.
 - A 200-move game at 50 visits takes a few minutes on a computer.
 
 ## Troubleshooting

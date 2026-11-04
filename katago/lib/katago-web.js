@@ -58156,6 +58156,13 @@ var KataGoBinModelParser = class {
   }
   readBinaryFloats(count2) {
     this.skipWhitespace();
+    if (this.data[this.idx] !== 64) {
+      // Text-format model (.txt / .txt.gz): weights are written as ASCII numbers. Added for Honte Review.
+      const out = new Float32Array(count2);
+      for (let i = 0; i < count2; i++) out[i] = this.readFloatAscii();
+      this.skipWhitespace();
+      return out;
+    }
     const marker = this.data.subarray(this.idx, this.idx + 5);
     if (marker.length !== 5 || marker[0] !== 64 || // @
     marker[1] !== 66 || // B
