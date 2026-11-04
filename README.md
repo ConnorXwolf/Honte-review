@@ -8,6 +8,8 @@
   <a href="https://connorxwolf.github.io/honte-review/"><b>Open Honte →</b></a>
   &nbsp;·&nbsp;
   <a href="https://connorxwolf.github.io/honte-review/app.dc.html?demo=1">Try the demo</a>
+  &nbsp;·&nbsp;
+  <a href="#support-honte">Support Honte</a>
 </p>
 
 ---
@@ -173,6 +175,20 @@ KataGo details: [`katago/README.md`](katago/README.md).
 | `katago/` | In-browser KataGo engine and models |
 | `katago-server/` | Optional self-hosted KataGo server |
 | `supabase/` | Database setup and the optional OGS proxy |
+
+---
+
+## Support Honte
+
+Honte is free to use, with no ads and no paid tier. It's built and maintained by one Go player in their spare time.
+
+If it helps your Go, a small tip keeps it running and pays for new features: hosting, better KataGo models, and more ways to review.
+
+<p align="center">
+  <a href="https://www.paypal.com/ncp/payment/SHNVD9S5LFUTY"><img src="https://img.shields.io/badge/Support_Honte-PayPal-1e3a6e?style=for-the-badge&logo=paypal&logoColor=white" alt="Support Honte on PayPal"></a>
+</p>
+
+Not able to tip? Starring this repo, sharing Honte with your Go friends, or [reporting a bug](https://github.com/ConnorXwolf/honte-review/issues) helps just as much.
 
 ---
 
