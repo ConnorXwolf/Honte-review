@@ -19,21 +19,21 @@
 <script src="api.js?v=1"></script>
 <style>body{margin:0;background:var(--color-bg)}a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-800)}button{font-family:inherit}</style>
 </helmet>
-<div style="min-height:100vh;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--color-bg);color:var(--color-text);font-family:var(--font-body)">
 
 <sc-if value="{{ booting }}" hint-placeholder-val="{{ false }}">
   <div style="min-height:100vh;display:grid;place-items:center"><span class="tag tag-neutral">Loading…</span></div>
 </sc-if>
 
 <sc-if value="{{ showGate }}" hint-placeholder-val="{{ true }}">
-  <div style="min-height:100vh;display:flex;justify-content:center;padding:40px 16px 32px;box-sizing:border-box">
+  <div style="flex:1 0 auto;display:flex;justify-content:center;padding:40px 16px 32px;box-sizing:border-box">
     <div style="width:100%;max-width:520px;display:flex;flex-direction:column;gap:20px">
       <div style="display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;padding-bottom:8px">
         <h1 style="margin:0;display:flex;align-items:center;justify-content:center;gap:clamp(14px,4vw,24px);flex-wrap:wrap">
           <img src="assets/taiji.png?v=1" alt="" aria-hidden="true" width="233" height="233" style="width:clamp(88px,26vw,132px);height:auto;display:block">
           <img src="assets/honte-wordmark.png?v=1" alt="Honte" width="143" height="42" style="height:clamp(52px,15vw,76px);width:auto;display:block">
         </h1>
-        <span style="font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Game Review · 本手</span>
+        <span style="font-size:18px;letter-spacing:.1em;text-transform:uppercase;color:var(--color-neutral-700)">Game Review</span>
         <p style="margin:0;font-size:16px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty">Pull your games from OGS, mark the moves that decided them, let KataGo check your reading, and keep the lessons for your next game.</p>
       </div>
 
@@ -70,7 +70,7 @@
 </sc-if>
 
 <sc-if value="{{ showNewCode }}" hint-placeholder-val="{{ false }}">
-  <div style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
+  <div style="flex:1 0 auto;display:flex;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box">
     <div class="card" style="width:100%;max-width:520px;padding:28px;gap:16px;box-sizing:border-box">
       <span class="card-title">Your sign-in code</span>
       <sc-if value="{{ newHasOgs }}" hint-placeholder-val="{{ true }}"><div style="font-size:14px;color:var(--color-neutral-800)">Linked to OGS player <strong>{{ newOgsName }}</strong></div></sc-if>
@@ -86,7 +86,7 @@
 </sc-if>
 
 <sc-if value="{{ showApp }}" hint-placeholder-val="{{ false }}">
-  <div style="max-width:1280px;margin:0 auto;padding:20px 16px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+  <div style="width:100%;max-width:1280px;margin:0 auto;padding:20px 16px 48px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <a href="app.dc.html" aria-label="Honte home" style="display:flex;align-items:center;gap:10px;margin-right:auto;text-decoration:none"><img src="assets/taiji.png?v=1" alt="" aria-hidden="true" width="233" height="233" style="width:44px;height:44px;display:block"><img src="assets/honte-wordmark.png?v=1" alt="Honte" width="143" height="42" style="height:34px;width:auto;display:block"></a>
       <sc-if value="{{ hasOgs }}" hint-placeholder-val="{{ true }}"><a class="tag tag-accent-2" href="{{ ogsLink }}" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none">{{ ogsTag }}</a></sc-if>
@@ -96,6 +96,13 @@
     </div>
     <dc-import name="review" api="{{ api }}" profile="{{ profile }}" on-save-profile="{{ saveProfile }}" on-link-ogs="{{ linkOgs }}" mobile="{{ mobile }}" toast="{{ toastFn }}" hint-size="100%,600px"></dc-import>
   </div>
+</sc-if>
+
+<sc-if value="{{ showFooter }}" hint-placeholder-val="{{ true }}">
+  <footer style="margin-top:auto;padding:28px 16px 36px;display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;border-top:1px solid var(--color-divider)">
+    <span style="font-size:14px;line-height:1.5;color:var(--color-neutral-800);text-wrap:pretty;max-width:520px">Honte is free to use. If it helps your Go, a small tip keeps it running and growing.</span>
+    <a class="btn" href="https://www.paypal.com/ncp/payment/SHNVD9S5LFUTY" target="_blank" rel="noopener" style="white-space:nowrap;text-decoration:none;background:#1e3a6e;color:#ffffff;padding:10px 20px" style-hover="background:#152a52;color:#ffffff">Support Honte on PayPal ↗</a>
+  </footer>
 </sc-if>
 
 <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
@@ -183,7 +190,7 @@ class Component extends DCLogic {
       codeText: s.mode === 'demo' ? 'Demo · nothing is saved' : 'Code ' + fmt(s.myCode), copyMine: () => s.mode !== 'demo' && this.copy(fmt(s.myCode)),
       leaveText: s.mode === 'demo' ? 'Leave demo' : 'Sign out', leave: () => this.leave(),
       api: s.api, profile: s.profile, saveProfile: patch => this.saveProfile(patch), linkOgs: input => this.linkOgs(input), mobile: s.mobile, toastFn: m => this.toast(m),
-      hasToast: !!s.toast, toast: s.toast
+      showFooter: !s.booting, hasToast: !!s.toast, toast: s.toast
     };
   }
 }
